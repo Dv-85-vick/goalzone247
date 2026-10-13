@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GoalsZone24/7</title></head>
+<body>
+<header>⚽ GoalsZone24/7 ✓ - Betting • Live • Expert accumulators</header>
+<section>
+<h2>⚽ Individual Match Cards - {{ data.individual|length }} MATCHES</h2>
+{% for m in data.individual %}
+<div>{{ m.league }} - {{ m.home }} vs {{ m.away }} - {{ m.market }} - {{ m.odds }}x - {{ m.probability }}%</div>
+{% endfor %}
+</section>
+<section>
+<h2>✨ Free Accumulators - OPEN</h2>
+{% for acc in data.free_accumulators %}<div>{{ acc.total_odds }}x</div>{% endfor %}
+</section>
+<section>
+<h2>🔒 Premium - LOCKED</h2>
+<p>Unlock weekly 8000 Naira / Monthly 28000 Naira</p>
+<p>{{ data.disclaimer }}</p>
+</section>
+</body>
+</html>
