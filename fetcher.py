@@ -2,14 +2,11 @@ import requests, json, os, datetime
 from dotenv import load_dotenv
 load_dotenv()
 
-# Support both names - you use API_FOOTBALL_KEY in this file
 API_KEY = os.getenv("API_FOOTBALL_KEY") or os.getenv("FOOTBALL_API_KEY") or os.getenv("API_FOOTBALL_API_KEY")
-HEADERS = {"x-apisports-key": API_KEY} if API_KEY else {}
 
 HIGH_GOAL_LEAGUES = [78,88,144,207,218,103,113,119,89,79,179,94,203,345,253,39,140,135,61,40,141,136,62,197,71,128,188,106,115,271,244,243,110]
 
 def get_current_season():
-    # Football season 2025-2026
     now = datetime.date.today()
     return 2025 if now.month >= 7 else 2024
 
@@ -21,12 +18,17 @@ def fetch_fixtures(date_str):
 
     season = get_current_season()
     print(f"Fetching fixtures for {date_str} season {season}...")
+    
+    headers = {
+        "x-apisports-key": API_KEY
+    }
 
     for league_id in HIGH_GOAL_LEAGUES[:35]:
         url = f"https://v3.football.api-sports.io/fixtures?date={date_str}&league={league_id}&season={season}"
         try:
-            r = requests.get(url, headers=HEADERS, timeout=15)
+            r = requests.get(url, headers=headers, timeout=15)
             if r.status_code != 200:
+                print(f"League {league_id} failed {r.status_code}")
                 continue
             data = r.json()
             for f in data.get('response', []):
@@ -55,7 +57,6 @@ def build_data():
     today = datetime.date.today().isoformat()
     fixtures = fetch_fixtures(today)
 
-    # Fallback if no fixtures today
     if not fixtures:
         print("No fixtures today, trying tomorrow...")
         tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
@@ -81,7 +82,6 @@ def build_data():
             print(f"Error building tip {i}: {e}")
             continue
 
-    # If still empty, use fallback sample
     if not individual:
         individual = [
             {"id": 1, "league": "Premier League", "home": "Man City", "away": "Arsenal", "market": "Over 1.5", "probability": 95, "odds": 1.40, "status": "Not Started", "time": "15:00"},
@@ -103,8 +103,8 @@ def build_data():
     with open("data.json", "w") as f:
         json.dump(output, f, indent=2)
 
-    # Also save to templates if needed
     try:
+        os.makedirs("templates", exist_ok=True)
         with open("templates/data.json", "w") as f:
             json.dump(output, f, indent=2)
     except:
