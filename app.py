@@ -1,38 +1,30 @@
 from flask import Flask, render_template, jsonify
 import json, os
 from fetcher import build_data
+from live_updater import update_live
 
-app = Flask(__name__)
+app=Flask(__name__)
 
-def load_data():
+def get_data():
     try:
-        if os.path.exists("data.json"):
-            with open("data.json", "r") as f:
-                return json.load(f)
+        with open('data.json') as f:
+            return json.load(f)
     except:
-        pass
-    return build_data()
+        return {"matches":[],"accumulators":{},"date":"2026-10-16","api_calls_today":0}
 
-@app.route("/")
+@app.route('/')
 def index():
-    data = load_data()
-    return render_template("index.html", data=data)
+    d=get_data()
+    return render_template('index.html', matches=d.get('matches',[]), accas=d.get('accumulators',{}), date=d.get('date'), total=len(d.get('matches',[])), api_calls=d.get('api_calls_today',0))
 
-@app.route("/api/data")
-def api_data():
-    return jsonify(load_data())
-
-@app.route("/api/refresh")
+@app.route('/api/refresh')
 def refresh():
-    data = build_data()
-    # Optional: auto post to telegram
-    try:
-        from telegram_poster import send_telegram, format_daily_post
-        send_telegram(format_daily_post(data))
-    except:
-        pass
-    return jsonify({"status": "ok", "matches": len(data.get("individual", []))})
+    return jsonify(build_data())
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+@app.route('/api/live')
+def live():
+    update_live()
+    return jsonify(get_data())
+
+if __name__=='__main__':
+    app.run()
