@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GoalsZone24/7 - Live Predictions</title>
+<style>
+body { font-family: Arial; background: #0f172a; color: white; padding: 20px; }
+.card { background: #1e293b; padding: 15px; margin: 10px 0; border-radius: 8px; }
+.premium { border: 1px solid gold; }
+</style>
+</head>
+<body>
+<h1>⚽ GoalsZone24/7 - LIVE</h1>
+<p>Date: {{ data.date }} | Matches: {{ data.individual|length }}</p>
+
+<section>
+<h2>⚽ Individual Match Cards - {{ data.individual|length }} MATCHES</h2>
+{% for m in data.individual %}
+<div class="card">
+<b>{{ m.league }}</b><br>
+{{ m.home }} vs {{ m.away }} - {{ m.time }}<br>
+Market: <b>{{ m.market }}</b> - {{ m.odds }}x - {{ m.probability }}%<br>
+Status: {{ m.status }}
+</div>
+{% endfor %}
+</section>
+
+<section>
+<h2>✨ Free Accumulators</h2>
+{% for acc in data.free_accumulators %}
+<div class="card">{{ acc.total_odds }}x</div>
+{% endfor %}
+</section>
+
+<section>
+<h2>🔒 Premium - LOCKED</h2>
+<div class="card premium">
+<p>Unlock weekly 8000 Naira / Monthly 28000 Naira</p>
+<p>{{ data.disclaimer }}</p>
+<p>Total API Calls Used: {{ data.calls_used }}</p>
+</div>
+</section>
+
+</body>
+</html>
