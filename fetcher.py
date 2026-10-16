@@ -69,4 +69,4 @@ def build_data(light=False):
     return final
 
 if __name__=="__main__":
-    build_data(light=True)
+    build_data(light=True) 
