@@ -35,6 +35,14 @@ body{background:#1a1a1a;color:#fff;font-family:Arial,sans-serif;margin:0;padding
 .leg-line{display:flex;justify-content:space-between;gap:8px;margin-top:5px;align-items:center}
 .leg-market{color:#aaa;font-size:11px}
 .leg-odd{color:#22c55e;font-weight:bold;font-size:13px}
+.leg-num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#22c55e;color:#000;font-size:12px;font-weight:bold;margin-right:7px;flex-shrink:0}
+.leg-result{display:inline-block;margin-left:6px;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:bold}
+.leg-result.WIN{background:#22c55e;color:#000}
+.leg-result.LOST{background:#ef4444;color:#fff}
+.leg-result.PENDING{background:#555;color:#fff}
+.live-badge{display:inline-block;margin-left:6px;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:bold;background:#f59e0b;color:#000}
+.live-badge.FT{background:#333;color:#fff}
+.live-badge.LIVE{background:#ef4444;color:#fff}
 .empty-leg{color:#999;padding:14px 2px;font-size:14px}
 .match-card{background:#222;border:1px solid #333;border-radius:12px;padding:12px;margin-top:10px}
 .match-league{font-size:11px;color:#999}
@@ -86,13 +94,13 @@ body{background:#1a1a1a;color:#fff;font-family:Arial,sans-serif;margin:0;padding
     <button class="pill grey" onclick="shareCard(this)">Push 🚀</button>
     <button class="pill outline">{{ acca.overall_status|default('Pending') }}</button>
   </div>
-  <div style="font-size:12px;color:#999;margin-top:8px">{{ title }} &bull; {{ acca.count|default(0) }} Selections</div>
+  <div style="font-size:12px;color:#999;margin-top:8px">{{ title }} &bull; {{ acca.count|default(0) }} Selections &bull; {{ acca.wins|default(0) }} Won &bull; {{ acca.losses|default(0) }} Lost &bull; {{ acca.pending|default(0) }} Pending</div>
   {% if acca.legs %}
     {% for leg in acca.legs %}
     <div class="leg">
-      <div class="leg-teams">{{ leg.home }} vs {{ leg.away }}</div>
+      <div class="leg-teams"><span class="leg-num">{{ loop.index }}</span>{{ leg.home }} vs {{ leg.away }}<span class="leg-result {{ leg.result|default('PENDING') }}">{{ leg.result|default('PENDING') }}</span>{% if leg.status in ['1H','2H','HT','ET','LIVE','P'] %}<span class="live-badge LIVE">LIVE {{ leg.score_home|default(0) }} - {{ leg.score_away|default(0) }}{% if leg.elapsed %} {{ leg.elapsed }}'{% endif %}</span>{% elif leg.status in ['FT','AET','PEN'] %}<span class="live-badge FT">FT {{ leg.score_home|default(0) }} - {{ leg.score_away|default(0) }}</span>{% else %}<span class="live-badge">KO {{ leg.time }}</span>{% endif %}</div>
       <div class="leg-line"><span class="leg-market">{{ leg.market_label|default(leg.market|default('')) }}</span><span class="leg-odd">@ {{ leg.odd }}</span></div>
-      <div class="leg-meta">{{ leg.country|default('') }} {{ leg.league }} | {{ leg.date|default(date) }} | {{ leg.time }}</div>
+      <div class="leg-meta">{{ leg.country|default('') }} {{ leg.league }} | {{ leg.date|default(date) }} | {{ leg.time }} | Score: {{ leg.score_home|default(0) }} - {{ leg.score_away|default(0) }}</div>
     </div>
     {% endfor %}
   {% else %}
