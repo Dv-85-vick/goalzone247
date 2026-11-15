@@ -1,146 +1,525 @@
+
 from flask import Flask, render_template, jsonify, request
-import os, requests
+import os
+import requests
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
+
 API_KEY = os.getenv("API_FOOTBALL_KEY")
 BASE = "https://v3.football.api-sports.io"
-HEADERS = {'x-apisports-key': API_KEY} if API_KEY else {}
+
+HEADERS = (
+    {"x-apisports-key": API_KEY}
+    if API_KEY else {}
+)
+
+CACHE = {"data": None}
+
+MARKET_LABELS = {
+    "over15": "Over 1.5",
+    "over25": "Over 2.5",
+    "btts": "BTTS",
+    "home_over15": "Home Over 1.5",
+    "away_over15": "Away Over 1.5"
+}
+
 
 def api_get(endpoint, params):
-    try:
-        r = requests.get(f"{BASE}/{endpoint}", headers=HEADERS, params=params, timeout=15)
-        if r.status_code==200:
-            return r.json().get('response',[])
-        return []
-    except:
+
+    if not API_KEY:
         return []
 
-def parse_odds(o):
-    m={}
     try:
-        for bet in o['bookmakers'][0]['bets']:
-            name=bet['name']
-            for v in bet['values']:
-                odd=float(v['odd']); val=v['value']
-                if "Over/Under" in name:
-                    if val=="Over 1.5": m['over15']=odd
-                    if val=="Over 2.5": m['over25']=odd
-                if "Both Teams to Score" in name and val=="Yes": m['btts']=odd
-                if "Home Team" in name and "Over 1.5" in val: m['home_over15']=odd
-                if "Away Team" in name and "Over 1.5" in val: m['away_over15']=odd
-        if 'over15' not in m: m['over15']=1.30
-        if 'over25' not in m: m['over25']=1.85
-        if 'btts' not in m: m['btts']=1.90
-        if 'home_over15' not in m: m['home_over15']=2.10
-        if 'away_over15' not in m: m['away_over15']=2.40
-        return m
-    except:
-        return {'over15':1.30,'over25':1.85,'btts':1.90,'home_over15':2.10,'away_over15':2.40}
+        response = requests.get(
+            f"{BASE}/{endpoint}",
+            headers=HEADERS,
+            params=params,
+            timeout=15
+        )
 
-CACHE={"data":None}
+        if response.status_code != 200:
+            return []
+
+        return response.json().get("response", [])
+
+    except (requests.RequestException, ValueError):
+        return []
+
+
+def parse_odds(data):
+
+    markets = {}
+
+    if not data:
+        return markets
+
+    try:
+        for bookmaker in data.get("bookmakers", []):
+
+            for bet in bookmaker.get("bets", []):
+
+                name = bet.get("name", "").lower()
+
+                for value in bet.get("values", []):
+
+                    try:
+                        odd = float(value.get("odd", 0))
+                    except (TypeError, ValueError):
+                        continue
+
+                    val = str(value.get("value", "")).lower()
+
+                    if odd <= 1:
+                        continue
+
+                    if "over/under" in name:
+
+                        if val == "over 1.5":
+                            markets.setdefault("over15", odd)
+
+                        elif val == "over 2.5":
+                            markets.setdefault("over25", odd)
+
+                    if "both teams to score" in name:
+
+                        if val == "yes":
+                            markets.setdefault("btts", odd)
+
+                    if "home team" in name and "over 1.5" in val:
+                        markets.setdefault("home_over15", odd)
+
+                    if "away team" in name and "over 1.5" in val:
+                        markets.setdefault("away_over15", odd)
+
+        return markets
+
+    except (KeyError, TypeError, ValueError):
+        return markets
+
 
 def build_all():
-    today=datetime.now()
-    dates={
-        "yesterday":(today-timedelta(days=1)).strftime("%Y-%m-%d"),
-        "today":today.strftime("%Y-%m-%d"),
-        "tomorrow":(today+timedelta(days=1)).strftime("%Y-%m-%d"),
-        "next_tomorrow":(today+timedelta(days=2)).strftime("%Y-%m-%d")
+
+    today = datetime.now()
+
+    dates = {
+        "yesterday": (
+            today - timedelta(days=1)
+        ).strftime("%Y-%m-%d"),
+
+        "today": today.strftime("%Y-%m-%d"),
+
+        "tomorrow": (
+            today + timedelta(days=1)
+        ).strftime("%Y-%m-%d"),
+
+        "next_tomorrow": (
+            today + timedelta(days=2)
+        ).strftime("%Y-%m-%d")
     }
-    all_data={}
-    for key, ds in dates.items():
-        fixtures=api_get("fixtures", {"date": ds})
-        odds_list=api_get("odds", {"date": ds})
-        odds_map={o['fixture']['id']: o for o in odds_list}
-        matches=[]
+
+    all_data = {}
+
+    api_calls = 0
+
+    for key, date_string in dates.items():
+
+        fixtures = api_get(
+            "fixtures",
+            {"date": date_string}
+        )
+        api_calls += 1
+
+        odds_list = api_get(
+            "odds",
+            {"date": date_string}
+        )
+        api_calls += 1
+
+        odds_map = {}
+
+        for item in odds_list:
+
+            fixture_id = (
+                item.get("fixture", {}).get("id")
+            )
+
+            if fixture_id:
+                odds_map[fixture_id] = item
+
+        matches = []
+
+        # ONLY FIXTURES RETURNED BY API-FOOTBALL.
+        # NO HARDCODED TEAMS.
+        # NO DEMONSTRATION MATCHES.
+        # NO FAKE FIXTURES.
+
         for fx in fixtures[:50]:
-            fid=fx['fixture']['id']
-            markets=parse_odds(odds_map.get(fid))
-            rank = 10 - (markets.get('over15',1.3)-1.0)*2
-            matches.append({
-                "fixture_id":fid,"league":fx['league']['name'],"home":fx['teams']['home']['name'],"away":fx['teams']['away']['name'],
-                "time":fx['fixture']['date'][11:16],"status":fx['fixture']['status']['short'],
-                "score_home":fx['goals']['home'] or 0,"score_away":fx['goals']['away'] or 0,
-                "elapsed":fx['fixture']['status']['elapsed'] or 0,"markets":markets,
-                "score_rank":rank
-            })
-        matches.sort(key=lambda x: x['score_rank'], reverse=True)
-        if len(matches)==0:
-            matches=[
-                {"fixture_id":1,"league":"Premier League","home":"【entity-Arsenal¦canonical_name=Arsenal】","away":"【entity-Chelsea¦canonical_name=Chelsea】","time":"18:00","status":"NS","score_home":0,"score_away":0,"elapsed":0,"markets":{"over15":1.28,"over25":1.75,"btts":1.80,"home_over15":1.90,"away_over15":2.20},"score_rank":9},
-                {"fixture_id":2,"league":"La Liga","home":"【entity-Real Madrid¦canonical_name=Real Madrid】","away":"【entity-Barcelona¦canonical_name=Barcelona】","time":"20:00","status":"NS","score_home":0,"score_away":0,"elapsed":0,"markets":{"over15":1.30,"over25":1.85,"btts":1.75,"home_over15":2.00,"away_over15":2.10},"score_rank":8.5},
-            ]
+
+            try:
+
+                fixture_id = fx["fixture"]["id"]
+
+                home = fx["teams"]["home"]["name"]
+                away = fx["teams"]["away"]["name"]
+
+                league = fx["league"]["name"]
+
+                fixture_date = fx["fixture"]["date"]
+
+                status_data = fx["fixture"]["status"]
+
+                goals = fx.get("goals", {})
+
+                markets = parse_odds(
+                    odds_map.get(fixture_id)
+                )
+
+                over15 = markets.get("over15")
+
+                rank = (
+                    10 - (over15 - 1.0) * 2
+                    if over15 is not None
+                    else 0
+                )
+
+                matches.append({
+
+                    "fixture_id": fixture_id,
+
+                    "league": league,
+
+                    "home": home,
+
+                    "away": away,
+
+                    "time": fixture_date[11:16],
+
+                    "status": status_data.get("short", "NS"),
+
+                    "score_home": goals.get("home") or 0,
+
+                    "score_away": goals.get("away") or 0,
+
+                    "elapsed": status_data.get("elapsed") or 0,
+
+                    "markets": markets,
+
+                    "score_rank": rank
+
+                })
+
+            except (KeyError, TypeError, ValueError):
+                continue
+
+        matches.sort(
+            key=lambda x: x["score_rank"],
+            reverse=True
+        )
+
         accas = generate_accumulators(matches)
-        all_data[key]={"date":ds,"matches":matches,"accumulators":accas}
-    return {"dates":all_data,"current_date":dates["today"],"last_update":datetime.now().isoformat(),"api_calls_today":8}
+
+        all_data[key] = {
+
+            "date": date_string,
+
+            "matches": matches,
+
+            "accumulators": accas
+
+        }
+
+    return {
+
+        "dates": all_data,
+
+        "current_date": dates["today"],
+
+        "last_update": datetime.now().isoformat(),
+
+        "api_calls_today": api_calls
+
+    }
+
 
 def generate_accumulators(matches):
+
     def build_single_market(market_key, target_odds):
-        legs=[]; used=set(); total=1.0
-        sorted_m = sorted(matches, key=lambda x: x['markets'].get(market_key, 9.9))
-        for m in sorted_m:
-            fid=m['fixture_id']
-            if fid in used: continue # NO DUPLICATE - 【entity-Chelsea¦canonical_name=Chelsea】 can't appear twice
-            odd=m['markets'].get(market_key)
-            if not odd: continue
-            legs.append({"fixture_id":fid,"home":m['home'],"away":m['away'],"league":m['league'],"market":market_key,"odd":odd,"time":m['time']})
-            used.add(fid)
-            total*=odd
-            if total>=target_odds:
+
+        legs = []
+
+        used = set()
+
+        total = 1.0
+
+        sorted_matches = sorted(
+            matches,
+            key=lambda x: x["markets"].get(
+                market_key, 999
+            )
+        )
+
+        for match in sorted_matches:
+
+            fixture_id = match["fixture_id"]
+
+            if fixture_id in used:
+                continue
+
+            odd = match["markets"].get(market_key)
+
+            # Never use invented odds.
+            if odd is None:
+                continue
+
+            legs.append({
+
+                "fixture_id": fixture_id,
+
+                "home": match["home"],
+
+                "away": match["away"],
+
+                "league": match["league"],
+
+                "market": market_key,
+
+                "market_label": MARKET_LABELS[market_key],
+
+                "odd": odd,
+
+                "time": match["time"]
+
+            })
+
+            used.add(fixture_id)
+
+            total *= odd
+
+            if total >= target_odds:
                 break
-        return {"legs":legs,"total_odds":round(total,2),"count":len(legs),"target":target_odds}
+
+        return {
+
+            "legs": legs,
+
+            "total_odds": round(total, 2),
+
+            "count": len(legs),
+
+            "target": target_odds
+
+        }
 
     def build_mix(target_odds):
-        legs=[]; used=set(); total=1.0
-        pool=[]
-        for m in matches:
-            for mk in ['over15','over25','btts','home_over15','away_over15']:
-                odd=m['markets'].get(mk)
-                if odd:
-                    pool.append({"fid":m['fixture_id'],"home":m['home'],"away":m['away'],"league":m['league'],"market":mk,"odd":odd,"rank":m['score_rank'],"time":m['time']})
-        pool.sort(key=lambda x: (x['rank'], -1/x['odd']), reverse=True)
-        for p in pool:
-            if p['fid'] in used: continue # NO DUPLICATE IN MIX
-            legs.append({"fixture_id":p['fid'],"home":p['home'],"away":p['away'],"league":p['league'],"market":p['market'],"odd":p['odd'],"time":p['time']})
-            used.add(p['fid'])
-            total*=p['odd']
-            if total>=target_odds:
-                break
-        return {"legs":legs,"total_odds":round(total,2),"count":len(legs),"target":target_odds}
 
-    accas={}
-    for mk in ['over15','over25','btts','home_over15','away_over15']:
-        accas[mk] = {"3": build_single_market(mk, 3.0), "6": build_single_market(mk, 6.0)}
-    accas['mix'] = {"10": build_mix(10.0), "20": build_mix(20.0)}
+        legs = []
+
+        used = set()
+
+        total = 1.0
+
+        pool = []
+
+        for match in matches:
+
+            for market_key in MARKET_LABELS:
+
+                odd = match["markets"].get(market_key)
+
+                if odd is None:
+                    continue
+
+                pool.append({
+
+                    "fid": match["fixture_id"],
+
+                    "home": match["home"],
+
+                    "away": match["away"],
+
+                    "league": match["league"],
+
+                    "market": market_key,
+
+                    "market_label": MARKET_LABELS[market_key],
+
+                    "odd": odd,
+
+                    "rank": match["score_rank"],
+
+                    "time": match["time"]
+
+                })
+
+        pool.sort(
+            key=lambda x: (
+                x["rank"],
+                -1 / x["odd"]
+            ),
+            reverse=True
+        )
+
+        for item in pool:
+
+            fixture_id = item["fid"]
+
+            # A match can appear only once in a mixed acca.
+            if fixture_id in used:
+                continue
+
+            legs.append({
+
+                "fixture_id": fixture_id,
+
+                "home": item["home"],
+
+                "away": item["away"],
+
+                "league": item["league"],
+
+                "market": item["market"],
+
+                "market_label": item["market_label"],
+
+                "odd": item["odd"],
+
+                "time": item["time"]
+
+            })
+
+            used.add(fixture_id)
+
+            total *= item["odd"]
+
+            if total >= target_odds:
+                break
+
+        return {
+
+            "legs": legs,
+
+            "total_odds": round(total, 2),
+
+            "count": len(legs),
+
+            "target": target_odds
+
+        }
+
+    accas = {}
+
+    for market_key in MARKET_LABELS:
+
+        accas[market_key] = {
+
+            "3": build_single_market(
+                market_key, 3.0
+            ),
+
+            "6": build_single_market(
+                market_key, 6.0
+            )
+
+        }
+
+    accas["mix"] = {
+
+        "10": build_mix(10.0),
+
+        "20": build_mix(20.0)
+
+    }
+
     return accas
 
+
 def get_data():
+
     global CACHE
-    if CACHE["data"]:
+
+    if CACHE["data"] is not None:
         return CACHE["data"]
-    data=build_all()
-    CACHE["data"]=data
+
+    data = build_all()
+
+    CACHE["data"] = data
+
     return data
 
-@app.route('/')
+
+@app.route("/")
 def index():
-    d=get_data()
-    sel=request.args.get('date','today')
-    dd=d['dates'].get(sel) or d['dates'].get('today')
-    return render_template('index.html', data=d, selected_date=sel, dates=d['dates'], matches=dd['matches'], accas=dd['accumulators'], date=dd['date'], total=len(dd['matches']), api_calls=d['api_calls_today'], last_update=d['last_update'], api_key_set=bool(API_KEY))
 
-@app.route('/api/refresh')
+    data = get_data()
+
+    selected_date = request.args.get(
+        "date", "today"
+    )
+
+    if selected_date not in data["dates"]:
+        selected_date = "today"
+
+    selected_data = data["dates"][selected_date]
+
+    return render_template(
+
+        "index.html",
+
+        data=data,
+
+        selected_date=selected_date,
+
+        dates=data["dates"],
+
+        matches=selected_data["matches"],
+
+        accas=selected_data["accumulators"],
+
+        date=selected_data["date"],
+
+        total=len(selected_data["matches"]),
+
+        api_calls=data["api_calls_today"],
+
+        last_update=data["last_update"],
+
+        api_key_set=bool(API_KEY)
+
+    )
+
+
+@app.route("/api/refresh")
 def refresh():
-    global CACHE
-    CACHE["data"]=None
-    d=get_data()
-    return jsonify({"status":"ok","today":len(d['dates']['today']['matches'])})
 
-@app.route('/api/live')
+    global CACHE
+
+    CACHE["data"] = None
+
+    data = get_data()
+
+    return jsonify({
+
+        "status": "ok",
+
+        "today": len(
+            data["dates"]["today"]["matches"]
+        )
+
+    })
+
+
+@app.route("/api/live")
 def live():
+
     return jsonify(get_data())
 
-if __name__=='__main__':
-    port=int(os.environ.get("PORT",10000))
-    app.run(host='0.0.0.0',port=port)
+
+if __name__ == "__main__":
+
+    port = int(os.environ.get("PORT", 10000))
+
+    app.run(
+        host="0.0.0.0",
+        port=port
+    )
