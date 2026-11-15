@@ -1,617 +1,171 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <title>GoalsZone24/7 - LIVE</title>
-
 <style>
-* {
-    box-sizing: border-box;
-}
-
-body {
-    background: #0a1931;
-    color: #fff;
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 14px;
-    overflow-x: hidden;
-}
-
-.header {
-    font-size: 22px;
-    font-weight: bold;
-    margin-bottom: 14px;
-}
-
-.toggle {
-    display: flex;
-    gap: 8px;
-    margin: 12px 0;
-    flex-wrap: wrap;
-}
-
-.toggle a {
-    padding: 9px 14px;
-    border-radius: 20px;
-    background: #1a2a4a;
-    color: #fff;
-    text-decoration: none;
-    font-size: 13px;
-}
-
-.toggle a.active {
-    background: #00ff88;
-    color: #000;
-    font-weight: bold;
-}
-
-.info {
-    color: #aaa;
-    font-size: 11px;
-    margin: 10px 0;
-    line-height: 1.7;
-}
-
-.cards {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-    margin-top: 12px;
-}
-
-@media(min-width: 700px) {
-    .cards {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
-.card {
-    background: #12244a;
-    border-radius: 15px;
-    padding: 14px;
-    min-width: 0;
-}
-
-.league {
-    font-size: 11px;
-    color: #9bb4c9;
-    margin-bottom: 7px;
-}
-
-.teams {
-    font-weight: bold;
-    margin: 7px 0;
-    font-size: 15px;
-    line-height: 1.4;
-    overflow-wrap: anywhere;
-}
-
-.time {
-    font-size: 12px;
-    color: #aaa;
-    margin-top: 7px;
-}
-
-.status {
-    float: right;
-    font-size: 10px;
-    padding: 4px 9px;
-    border-radius: 10px;
-    background: #00ff88;
-    color: #000;
-    font-weight: bold;
-}
-
-.market-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 10px;
-}
-
-.badge {
-    display: inline-block;
-    background: #00ff88;
-    padding: 6px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    color: #001b12;
-    font-weight: bold;
-}
-
-.section-heading {
-    margin-top: 28px;
-    font-size: 19px;
-}
-
-.acca-card {
-    background: #12244a;
-    border: 1px solid #253b64;
-    border-left: 4px solid #00ff88;
-    border-radius: 14px;
-    padding: 13px;
-    margin-top: 12px;
-    width: 100%;
-    overflow: hidden;
-}
-
-.acca-card.hot {
-    border-left-color: #ffaa00;
-}
-
-.acca-card.mix10 {
-    border-left-color: #ff00ff;
-}
-
-.acca-card.mix20 {
-    border-left-color: #ff0055;
-}
-
-.acca-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.acca-title {
-    font-size: 14px;
-    font-weight: bold;
-    line-height: 1.4;
-}
-
-.acca-count {
-    color: #9fb2d0;
-    font-size: 11px;
-    margin-top: 4px;
-}
-
-.acca-total {
-    background: #00ff88;
-    color: #001b12;
-    padding: 9px 11px;
-    border-radius: 9px;
-    font-weight: bold;
-    font-size: 15px;
-    white-space: nowrap;
-}
-
-.acca-card.hot .acca-total {
-    background: #ffaa00;
-}
-
-.acca-card.mix10 .acca-total {
-    background: #ff00ff;
-    color: #fff;
-}
-
-.acca-card.mix20 .acca-total {
-    background: #ff0055;
-    color: #fff;
-}
-
-.acca-leg {
-    background: #0c1b36;
-    border: 1px solid #203456;
-    border-radius: 9px;
-    padding: 10px;
-    margin-top: 7px;
-}
-
-.acca-teams {
-    font-size: 13px;
-    font-weight: bold;
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-}
-
-.acca-details {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 7px;
-}
-
-.acca-market {
-    color: #9fb2d0;
-    font-size: 11px;
-}
-
-.acca-odd {
-    color: #00ff88;
-    font-weight: bold;
-    font-size: 13px;
-}
-
-.acca-league {
-    color: #7188aa;
-    font-size: 10px;
-    margin-top: 6px;
-}
-
-.acca-empty {
-    color: #9fb2d0;
-    text-align: center;
-    padding: 18px 8px;
-    font-size: 12px;
-}
-
-.empty {
-    text-align: center;
-    padding: 40px 15px;
-    background: #12244a;
-    border-radius: 15px;
-    margin-top: 15px;
-    color: #aabbd2;
-    line-height: 1.6;
-}
-
-.footer {
-    margin-top: 30px;
-    color: #718099;
-    font-size: 11px;
-    text-align: center;
-    line-height: 1.7;
-    padding: 12px;
-}
-
-@media(max-width: 400px) {
-
-    body {
-        padding: 11px;
-    }
-
-    .header {
-        font-size: 20px;
-    }
-
-    .card {
-        padding: 12px;
-    }
-
-    .teams {
-        font-size: 14px;
-    }
-
-    .acca-card {
-        padding: 11px;
-    }
-
-    .acca-title {
-        font-size: 13px;
-    }
-
-    .acca-teams {
-        font-size: 12px;
-    }
-
-    .acca-total {
-        font-size: 13px;
-        padding: 8px;
-    }
-}
+* { box-sizing: border-box; }
+body { background: #0a1931; color: #fff; font-family: Arial, sans-serif; margin: 0; padding: 14px; overflow-x: hidden; }
+.header { font-size: 22px; font-weight: bold; margin-bottom: 14px; }
+.toggle { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+.toggle a { padding: 9px 14px; border-radius: 20px; background: #1a2a4a; color: #fff; text-decoration: none; font-size: 13px; }
+.toggle a.active { background: #00ff88; color: #000; font-weight: bold; }
+.info { color: #aaa; font-size: 11px; margin: 10px 0; line-height: 1.7; }
+.cards { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
+@media(min-width: 700px) { .cards { grid-template-columns: 1fr 1fr; } }
+.card { background: #12244a; border-radius: 15px; padding: 14px; min-width: 0; }
+.league { font-size: 11px; color: #9bb4c9; margin-bottom: 7px; }
+.teams { font-weight: bold; margin: 7px 0; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
+.time { font-size: 12px; color: #aaa; margin-top: 7px; }
+.status { float: right; font-size: 10px; padding: 4px 9px; border-radius: 10px; background: #00ff88; color: #000; font-weight: bold; }
+.market-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.badge { display: inline-block; background: #1a2a4a; border: 1px solid #253b64; padding: 6px 10px; border-radius: 20px; font-size: 11px; color: #fff; font-weight: bold; }
+.badge .result { margin-left: 5px; padding: 2px 7px; border-radius: 10px; font-size: 10px; }
+.badge .result.WIN { background: #00ff88; color: #001b12; }
+.badge .result.LOST { background: #ff3b3b; color: #fff; }
+.badge .result.PENDING { background: #555; color: #fff; }
+.section-heading { margin-top: 28px; font-size: 19px; }
+.acca-card { background: #12244a; border: 1px solid #253b64; border-left: 4px solid #00ff88; border-radius: 14px; padding: 13px; margin-top: 12px; width: 100%; overflow: hidden; }
+.acca-card.hot { border-left-color: #ffaa00; }
+.acca-card.mix10 { border-left-color: #ff00ff; }
+.acca-card.mix20 { border-left-color: #ff0055; }
+.acca-card.acca-win { border-left-color: #00ff88; }
+.acca-card.acca-lost { border-left-color: #ff3b3b; }
+.acca-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+.acca-title { font-size: 14px; font-weight: bold; line-height: 1.4; }
+.acca-count { color: #9fb2d0; font-size: 11px; margin-top: 4px; }
+.acca-total { background: #00ff88; color: #001b12; padding: 9px 11px; border-radius: 9px; font-weight: bold; font-size: 15px; white-space: nowrap; }
+.acca-card.hot .acca-total { background: #ffaa00; }
+.acca-card.mix10 .acca-total { background: #ff00ff; color: #fff; }
+.acca-card.mix20 .acca-total { background: #ff0055; color: #fff; }
+.acca-badge { display: inline-block; margin-top: 6px; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+.acca-badge.WIN { background: #00ff88; color: #001b12; }
+.acca-badge.LOST { background: #ff3b3b; color: #fff; }
+.acca-badge.PENDING { background: #444; color: #fff; }
+.acca-leg { background: #0c1b36; border: 1px solid #203456; border-radius: 9px; padding: 10px; margin-top: 7px; }
+.acca-teams { font-size: 13px; font-weight: bold; line-height: 1.5; overflow-wrap: anywhere; }
+.acca-details { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.acca-market { color: #9fb2d0; font-size: 11px; }
+.acca-odd { color: #00ff88; font-weight: bold; font-size: 13px; }
+.acca-league { color: #7188aa; font-size: 10px; margin-top: 6px; }
+.acca-score { color: #fff; font-size: 11px; margin-top: 4px; }
+.leg-result { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
+.leg-result.WIN { background: #00ff88; color: #001b12; }
+.leg-result.LOST { background: #ff3b3b; color: #fff; }
+.leg-result.PENDING { background: #555; color: #fff; }
+.acca-empty { color: #9fb2d0; text-align: center; padding: 18px 8px; font-size: 12px; }
+.empty { text-align: center; padding: 40px 15px; background: #12244a; border-radius: 15px; margin-top: 15px; color: #aabbd2; line-height: 1.6; }
+.footer { margin-top: 30px; color: #718099; font-size: 11px; text-align: center; line-height: 1.7; padding: 12px; }
+.float-btns { position: fixed; right: 14px; bottom: 16px; display: flex; flex-direction: column; gap: 10px; z-index: 999; }
+.float-btn { width: 52px; height: 52px; border-radius: 50%; border: none; background: #00ff88; color: #001b12; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.5); }
+.float-btn.bottom { background: #ffaa00; }
+.float-btn:active { transform: scale(0.95); }
+html { scroll-behavior: smooth; }
+@media(max-width: 400px) { body { padding: 11px; } .header { font-size: 20px; } .card { padding: 12px; } .teams { font-size: 14px; } .acca-card { padding: 11px; } .acca-title { font-size: 13px; } .acca-teams { font-size: 12px; } .acca-total { font-size: 13px; padding: 8px; } }
 </style>
 </head>
-
-<body>
-
-<div class="header">
-    ⚽ GoalsZone24/7 - LIVE
-</div>
-
-
-<!-- DATE NAVIGATION -->
-
+<body id="top">
+<div class="header">⚽ GoalsZone24/7 - LIVE</div>
 <div class="toggle">
-
-    <a href="/?date=yesterday"
-       class="{% if selected_date=='yesterday' %}active{% endif %}">
-       Yesterday
-    </a>
-
-    <a href="/?date=today"
-       class="{% if selected_date=='today' %}active{% endif %}">
-       Today
-    </a>
-
-    <a href="/?date=tomorrow"
-       class="{% if selected_date=='tomorrow' %}active{% endif %}">
-       Tomorrow
-    </a>
-
-    <a href="/?date=next_tomorrow"
-       class="{% if selected_date=='next_tomorrow' %}active{% endif %}">
-       Next
-    </a>
-
+    <a href="/?date=yesterday" class="{% if selected_date=='yesterday' %}active{% endif %}">Yesterday</a>
+    <a href="/?date=today" class="{% if selected_date=='today' %}active{% endif %}">Today</a>
+    <a href="/?date=tomorrow" class="{% if selected_date=='tomorrow' %}active{% endif %}">Tomorrow</a>
+    <a href="/?date=next_tomorrow" class="{% if selected_date=='next_tomorrow' %}active{% endif %}">Next</a>
 </div>
-
-
-<div class="info">
-
-    Date: {{ date }}
-    |
-    Matches: {{ total }}
-    |
-    API Calls: {{ api_calls }}
-    |
-    Key: {{ api_key_set }}
-
-</div>
-
-
+<div class="info">Date: {{ date }} | Matches: {{ total }} | API Calls: {{ api_calls }} | Key: {{ api_key_set }}</div>
 {% if total == 0 %}
-
-<div class="empty">
-
-    ⚽ No fixtures available for this date.
-
-    <br><br>
-
-    No demonstration matches or manually inserted teams
-    will be displayed.
-
-</div>
-
+<div class="empty">⚽ No fixtures available for this date.<br><br>No demonstration matches or manually inserted teams will be displayed.</div>
 {% else %}
-
-
-<!-- INDIVIDUAL MATCHES -->
-
-<h3 class="section-heading">
-    ⚽ Individual Match Cards - {{ total }} MATCHES
-</h3>
-
-
-<div class="cards">
-
-{% for match in matches %}
-
-<div class="card">
-
-    <div class="league">
-
-        {{ match.league }}
-
-        <span class="status">
-            {{ match.status }}
-        </span>
-
-    </div>
-
-
-    <div class="teams">
-
-        {{ match.home }} vs {{ match.away }}
-
-    </div>
-
-
-    <div class="time">
-
-        {{ match.time }}
-
-        {% if match.status in ['1H', '2H', 'HT', 'ET', 'LIVE'] %}
-
-            | {{ match.score_home }} - {{ match.score_away }}
-
-            {% if match.elapsed %}
-                | {{ match.elapsed }}'
-            {% endif %}
-
-        {% elif match.status in ['FT', 'AET', 'PEN'] %}
-
-            | {{ match.score_home }} - {{ match.score_away }}
-
-        {% endif %}
-
-    </div>
-
-
-    <div class="market-pills">
-
-        {% for key, label in [
-            ('over15', 'Over 1.5'),
-            ('over25', 'Over 2.5'),
-            ('btts', 'BTTS'),
-            ('home_over15', 'Home Over 1.5'),
-            ('away_over15', 'Away Over 1.5')
-        ] %}
-
-            {% if match.markets.get(key) %}
-
-                <span class="badge">
-                    {{ label }} @ {{ match.markets[key] }}
-                </span>
-
-            {% endif %}
-
-        {% endfor %}
-
-    </div>
-
-</div>
-
-{% endfor %}
-
-</div>
-
-
-<!-- ACCUMULATORS -->
-
-<h3 class="section-heading">
-    ✨ Free Accumulators - 12 Cards
-</h3>
-
-
+<h3 class="section-heading">✨ Free Accumulators - 16 Cards</h3>
 {% macro acca_card(title, acca, style='') %}
-
-<div class="acca-card {{ style }}">
-
+<div class="acca-card {{ style }} {% if acca.overall_status=='WIN' %}acca-win{% elif acca.overall_status=='LOST' %}acca-lost{% endif %}">
     <div class="acca-head">
-
         <div>
-
-            <div class="acca-title">
-                {{ title }}
-            </div>
-
-            <div class="acca-count">
-                {{ acca.count }} Selections
-            </div>
-
+            <div class="acca-title">{{ title }}</div>
+            <div class="acca-count">{{ acca.count }} Selections &bull; {{ acca.wins }} Won &bull; {{ acca.losses }} Lost &bull; {{ acca.pending }} Pending</div>
+            <span class="acca-badge {{ acca.overall_status }}">{{ acca.overall_status }}</span>
         </div>
-
-        <div class="acca-total">
-            {{ acca.total_odds }}x
-        </div>
-
+        <div class="acca-total">{{ acca.total_odds }}x</div>
     </div>
-
-
     {% if acca.legs %}
-
         {% for leg in acca.legs %}
-
         <div class="acca-leg">
-
-            <div class="acca-teams">
-                {{ leg.home }} vs {{ leg.away }}
-            </div>
-
-            <div class="acca-details">
-
-                <span class="acca-market">
-                    {{ leg.market_label }}
-                </span>
-
-                <span class="acca-odd">
-                    @ {{ leg.odd }}
-                </span>
-
-            </div>
-
-            <div class="acca-league">
-                {{ leg.league }} | {{ leg.time }}
-            </div>
-
+            <div class="acca-teams">{{ leg.home }} vs {{ leg.away }}<span class="leg-result {{ leg.result }}">{{ leg.result }}</span></div>
+            <div class="acca-details"><span class="acca-market">{{ leg.market_label }}</span><span class="acca-odd">@ {{ leg.odd }}</span></div>
+            <div class="acca-league">{{ leg.country }} — {{ leg.league }} | {{ leg.date }} | {{ leg.time }}</div>
+            <div class="acca-score">{% if leg.status in ['FT','AET','PEN','1H','2H','HT','ET','LIVE'] %}{{ leg.status }}: {{ leg.score_home }} - {{ leg.score_away }}{% else %}{{ leg.status }}{% endif %}</div>
         </div>
-
         {% endfor %}
-
     {% else %}
-
-        <div class="acca-empty">
-            No qualifying selections available.
-        </div>
-
+        <div class="acca-empty">No qualifying selections available.</div>
     {% endif %}
-
 </div>
+{% endmacro %}
+{% if accas %}
+{{ acca_card('Over 1.5 - 3+ Odds', accas.over15['3']) }}
+{{ acca_card('Over 1.5 - 6 Hot Plus', accas.over15['6'], 'hot') }}
+{{ acca_card('Over 2.5 - 3+ Odds', accas.over25['3']) }}
+{{ acca_card('Over 2.5 - 6 Hot Plus', accas.over25['6'], 'hot') }}
+{{ acca_card('BTTS - 3+ Odds', accas.btts['3']) }}
+{{ acca_card('BTTS - 6 Hot Plus', accas.btts['6'], 'hot') }}
+{{ acca_card('Home Over 1.5 - 3+ Odds', accas.home_over15['3']) }}
+{{ acca_card('Home Over 1.5 - 6 Hot Plus', accas.home_over15['6'], 'hot') }}
+{{ acca_card('Away Over 1.5 - 3+ Odds', accas.away_over15['3']) }}
+{{ acca_card('Away Over 1.5 - 6 Hot Plus', accas.away_over15['6'], 'hot') }}
+{{ acca_card('Home Win/Draw + Over 1.5 - 3+ Odds', accas.home_1x_over15['3']) }}
+{{ acca_card('Home Win/Draw + Over 1.5 - 6 Hot Plus', accas.home_1x_over15['6'], 'hot') }}
+{{ acca_card('Away Win/Draw + Over 1.5 - 3+ Odds', accas.away_x2_over15['3']) }}
+{{ acca_card('Away Win/Draw + Over 1.5 - 6 Hot Plus', accas.away_x2_over15['6'], 'hot') }}
+{{ acca_card('Mixed Accumulator - 10+ Odds', accas.mix['10'], 'mix10') }}
+{{ acca_card('Mixed Accumulator - 20+ Odds', accas.mix['20'], 'mix20') }}
+{% endif %}
 
+<h3 class="section-heading">⚽ Individual Match Cards - {{ total }} MATCHES</h3>
+{% macro match_card(match) %}
+<div class="card">
+    <div class="league">{{ match.country }} — {{ match.league }}<span class="status">{{ match.status }}</span></div>
+    <div class="teams">{{ match.home }} vs {{ match.away }}</div>
+    <div class="time">{{ match.date }} | {{ match.time }}{% if match.status in ['1H','2H','HT','ET','LIVE'] %} | {{ match.score_home }} - {{ match.score_away }}{% if match.elapsed %} | {{ match.elapsed }}'{% endif %}{% elif match.status in ['FT','AET','PEN'] %} | FT {{ match.score_home }} - {{ match.score_away }}{% endif %}</div>
+    <div class="market-pills">
+        {% for key, label in [('over15','Over 1.5'),('over25','Over 2.5'),('btts','BTTS'),('home_over15','Home Over 1.5'),('away_over15','Away Over 1.5'),('home_1x_over15','Home Win/Draw + Over 1.5'),('away_x2_over15','Away Win/Draw + Over 1.5')] %}
+            {% if match.markets.get(key) %}
+                <span class="badge">{{ label }} @ {{ match.markets[key] }}<span class="result {{ match.market_results.get(key,'PENDING') }}">{{ match.market_results.get(key,'PENDING') }}</span></span>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
 {% endmacro %}
 
-
-{% if accas %}
-
-{{ acca_card(
-    'Over 1.5 - 3+ Odds',
-    accas.over15['3']
-) }}
-
-{{ acca_card(
-    'Over 1.5 - 6 Hot Plus',
-    accas.over15['6'],
-    'hot'
-) }}
-
-
-{{ acca_card(
-    'Over 2.5 - 3+ Odds',
-    accas.over25['3']
-) }}
-
-{{ acca_card(
-    'Over 2.5 - 6 Hot Plus',
-    accas.over25['6'],
-    'hot'
-) }}
-
-
-{{ acca_card(
-    'BTTS - 3+ Odds',
-    accas.btts['3']
-) }}
-
-{{ acca_card(
-    'BTTS - 6 Hot Plus',
-    accas.btts['6'],
-    'hot'
-) }}
-
-
-{{ acca_card(
-    'Home Over 1.5 - 3+ Odds',
-    accas.home_over15['3']
-) }}
-
-{{ acca_card(
-    'Home Over 1.5 - 6 Hot Plus',
-    accas.home_over15['6'],
-    'hot'
-) }}
-
-
-{{ acca_card(
-    'Away Over 1.5 - 3+ Odds',
-    accas.away_over15['3']
-) }}
-
-{{ acca_card(
-    'Away Over 1.5 - 6 Hot Plus',
-    accas.away_over15['6'],
-    'hot'
-) }}
-
-
-{{ acca_card(
-    'Mixed Accumulator - 10+ Odds',
-    accas.mix['10'],
-    'mix10'
-) }}
-
-{{ acca_card(
-    'Mixed Accumulator - 20+ Odds',
-    accas.mix['20'],
-    'mix20'
-) }}
-
-{% endif %}
-
-{% endif %}
-
-
-<div class="footer">
-
-    GoalsZone24/7
-
-    <br>
-
-    Last Update: {{ last_update }}
-
-    <br>
-
-    Predictions and odds depend on available API bookmaker data.
-    Always check selections before placing a bet.
-
+<h3 class="section-heading">🔴 LIVE NOW</h3>
+<div class="cards">
+{% for match in matches %}{% if match.status in ['1H','2H','HT','ET','LIVE','P'] %}{{ match_card(match) }}{% endif %}{% endfor %}
 </div>
+{% if matches | selectattr("status", "in", ['1H','2H','HT','ET','LIVE','P']) | list | length == 0 %}
+<div class="empty">No live matches right now.</div>
+{% endif %}
 
+<h3 class="section-heading">⏳ Upcoming</h3>
+<div class="cards">
+{% for match in matches %}{% if match.status in ['NS','TBD'] %}{{ match_card(match) }}{% endif %}{% endfor %}
+</div>
+{% if matches | selectattr("status", "in", ['NS','TBD']) | list | length == 0 %}
+<div class="empty">No upcoming matches.</div>
+{% endif %}
+
+<h3 class="section-heading">✅ Settled / Finished</h3>
+<div class="cards">
+{% for match in matches %}{% if match.status not in ['1H','2H','HT','ET','LIVE','P','NS','TBD'] %}{{ match_card(match) }}{% endif %}{% endfor %}
+</div>
+{% if matches | rejectattr("status", "in", ['1H','2H','HT','ET','LIVE','P','NS','TBD']) | list | length == 0 %}
+<div class="empty">No settled matches yet.</div>
+{% endif %}
+
+{% endif %}
+<div class="float-btns">
+    <button class="float-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Go to Top">↑</button>
+    <button class="float-btn bottom" onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})" title="Go to Bottom">↓</button>
+</div>
+<div class="footer" id="bottom">GoalsZone24/7<br>Last Update: {{ last_update }}<br>Predictions and odds depend on available API bookmaker data. Always check selections before placing a bet.</div>
 </body>
 </html>
