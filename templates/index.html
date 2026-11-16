@@ -125,7 +125,7 @@ body>div,body>.group{max-width:1120px;margin-left:auto;margin-right:auto}
   {% if acca.legs %}
     {% for leg in acca.legs %}
     <div class="leg">
-      <div class="leg-teams"><span class="leg-num">{{ loop.index }}</span>{{ leg.home }} vs {{ leg.away }}<span class="leg-result {{ leg.result|default('PENDING') }}">{{ leg.result|default('PENDING') }}</span>{% if leg.status in ['1H','2H','HT','ET','LIVE','P'] %}<span class="live-badge LIVE">LIVE {{ leg.score_home|default(0) }} - {{ leg.score_away|default(0) }}{% if leg.elapsed %} {{ leg.elapsed }}'{% endif %}</span>{% elif leg.status in ['FT','AET','PEN'] %}<span class="live-badge FT">FT {{ leg.score_home|default(0) }} - {{ leg.score_away|default(0) }}</span>{% else %}<span class="live-badge">KO {{ leg.time }}</span>{% endif %}</div>
+      <div class="leg-teams"><span class="leg-num">{{ loop.index }}</span>{{ leg.home }} vs {{ leg.away }}<span class="leg-result {{ leg.result|default('PENDING') }}">{{ leg.result|default('PENDING') }}</span>{% if leg.status in ['1H','2H','HT','ET','LIVE','P'] %}<span class="live-badge LIVE">LIVE {{ leg.score_home|default(0) }} - {{ leg.score_away|default(0) }}{% if leg.elapsed %} {{ leg.elapsed }}'{% endif %}</span>{% elif leg.status in ['FT','AET','PEN'] %}<span class="live-badge FT">FT {{ leg.score_home|default(0) }} - {{ leg.score_away|default(0) }}</span>{% elif leg.is_postponed %}<span class="live-badge">POSTPONED - CHECK</span>{% else %}<span class="live-badge">KO {{ leg.time }}</span>{% endif %}</div>
       <div class="leg-line"><span class="leg-market">{{ leg.market_label|default(leg.market|default('')) }}</span><span class="leg-odd">@ {{ leg.odd }}</span></div>
       <div class="leg-meta">{{ leg.country|default('') }} {{ leg.league }} | {{ leg.date|default(date) }} | {{ leg.time }} | Score: {{ leg.score_home|default(0) }} - {{ leg.score_away|default(0) }}</div>
     </div>
@@ -139,12 +139,12 @@ body>div,body>.group{max-width:1120px;margin-left:auto;margin-right:auto}
 <div class="empty">⚽ No fixtures available for this date.<br>No demonstration matches will be displayed.</div>
 {% else %}
 <div class="group">
-  <div class="group-head"><div class="group-title">Midnight Accumulator Card</div><div class="target">12.00 Target</div></div>
-  {{ acca_inner('Over 1.5 — Midnight', accas.over15['6']) }}
+  <div class="group-head"><div class="group-title">Midnight Accumulator Card <span style="font-size:14px;color:#9aa0aa;font-weight:400">— 00:00 to 01:59 WAT only</span></div><div class="target">12.00 Target</div></div>
+  {{ acca_inner('Over 1.5 — Midnight', accas.midnight) }}
 </div>
 <div class="group">
-  <div class="group-head"><div class="group-title">Early Morning Accumulator Card</div><div class="target">12.00 Target</div></div>
-  {{ acca_inner('Over 2.5 — Early Morning', accas.over25['6']) }}
+  <div class="group-head"><div class="group-title">Early Morning Accumulator Card <span style="font-size:14px;color:#9aa0aa;font-weight:400">— 02:00 to 05:59 WAT only</span></div><div class="target">12.00 Target</div></div>
+  {{ acca_inner('Over 2.5 — Early Morning', accas.early) }}
 </div>
 <div class="group">
   <div class="group-head"><div class="group-title">Banker Accumulators</div><div class="target">3.00+ Target</div></div>
@@ -173,6 +173,7 @@ body>div,body>.group{max-width:1120px;margin-left:auto;margin-right:auto}
 </div>
 {% endif %}
 <div class="group">
+  <div style="color:#9aa0aa;font-size:14px;margin:-6px 0 10px">LIVE at top &bull; Upcoming in middle &bull; Finished at bottom</div>
   <div class="group-head"><div class="group-title">All Fixtures & Predictions</div><div class="target">{{ total }} Matches</div></div>
   <div id="fixturesList">
   {% for match in matches %}
@@ -183,12 +184,12 @@ body>div,body>.group{max-width:1120px;margin-left:auto;margin-right:auto}
         <div class="match-teams">{{ match.home }} vs {{ match.away }}</div>
         <div class="match-league">{{ match.country|default('') }}: {{ match.league }} &bull; {{ date }}, {{ match.time }} WAT</div>
       </div>
-      <div class="match-vs"><div class="vs-badge">VS</div><div class="match-status {% if match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE{% endif %}">{% if match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE {{ match.score_home }} - {{ match.score_away }}{% if match.elapsed %} {{ match.elapsed }}'{% endif %}{% elif match.status in ['FT','AET','PEN'] %}FT {{ match.score_home }} - {{ match.score_away }}{% else %}Upcoming{% endif %}</div></div>
+      <div class="match-vs"><div class="vs-badge">VS</div><div class="match-status {% if match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE{% endif %}">{% if match.is_postponed %}POSTPONED - CHECK{% elif match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE {{ match.score_home }} - {{ match.score_away }}{% if match.elapsed %} {{ match.elapsed }}'{% endif %}{% elif match.status in ['FT','AET','PEN'] %}FT {{ match.score_home }} - {{ match.score_away }}{% else %}Upcoming{% endif %}</div></div>
     </div>
     <div class="mkt">
       {% for key, label in [('home_1x_over15','1X & O1.5'),('away_x2_over15','X2 & O1.5'),('over15','OVER 1.5'),('over25','OVER 2.5'),('btts','BTTS'),('home_over15','HOME O1.5'),('away_over15','AWAY O1.5')] %}
         {% if match.markets.get(key) %}
-        <div class="mkt-box"><div class="mkt-label">{{ label }}</div><div class="mkt-odd">{{ match.markets[key] }}</div><div class="mkt-res {% if match.market_results.get(key)=='WIN' %}WIN{% elif match.market_results.get(key)=='LOST' %}LOST{% elif match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE{% else %}PENDING{% endif %}">{% if match.market_results.get(key)=='WIN' %}WIN{% elif match.market_results.get(key)=='LOST' %}LOST{% elif match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE{% else %}PENDING{% endif %}</div></div>
+        <div class="mkt-box"><div class="mkt-label">{{ label }}</div><div class="mkt-odd">{{ match.markets[key] }}</div><div class="mkt-res {% if match.market_results.get(key)=='WIN' %}WIN{% elif match.market_results.get(key)=='LOST' %}LOST{% elif match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE{% elif match.is_postponed %}CHECK{% else %}PENDING{% endif %}">{% if match.market_results.get(key)=='WIN' %}WIN{% elif match.market_results.get(key)=='LOST' %}LOST{% elif match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE{% elif match.is_postponed %}CHECK{% else %}PENDING{% endif %}</div></div>
         {% endif %}
       {% endfor %}
     </div>
