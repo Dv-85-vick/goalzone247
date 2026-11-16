@@ -6,55 +6,82 @@
 <title>GoalsZone24/7</title>
 <style>
 *{box-sizing:border-box}
-body{background:#1a1a1a;color:#fff;font-family:Arial,sans-serif;margin:0;padding:12px;overflow-x:hidden}
-.topbar{display:flex;gap:8px;flex-wrap:wrap}
-.topbar input,.topbar select{flex:1;min-width:140px;background:#2a2a2a;border:1px solid #3a3a3a;color:#fff;padding:11px 12px;border-radius:10px;font-size:14px;outline:none}
-.topbar select{flex:0 0 150px}
-.league-bar{margin-top:10px}
-.league-bar select{width:100%;background:#2a2a2a;border:1px solid #3a3a3a;color:#fff;padding:12px;border-radius:10px;font-size:15px}
-.loaded{color:#aaa;font-size:14px;margin:14px 4px 6px}
-.date-tabs{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
-.date-tabs a{padding:9px 14px;border-radius:20px;background:#2a2a2a;color:#fff;text-decoration:none;font-size:13px}
-.date-tabs a.active{background:#00ff88;color:#000;font-weight:bold}
-.info{color:#888;font-size:11px;margin:8px 4px}
-.group{background:#222;border:1px solid #333;border-radius:14px;padding:14px;margin-top:16px}
-.group-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
-.group-title{font-size:19px;font-weight:bold;line-height:1.3}
-.target{border:1px solid #00ff88;color:#00ff88;padding:6px 12px;border-radius:20px;font-size:13px;white-space:nowrap;font-weight:bold}
-.inner{background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:11px;margin-top:10px}
-.btn-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.pill{border:none;border-radius:6px;padding:7px 10px;font-size:13px;font-weight:bold;cursor:pointer;white-space:nowrap}
-.pill.odds{background:#22c55e;color:#000}
-.pill.img{background:#f59e0b;color:#000}
-.pill.grey{background:#333;color:#ccc}
-.pill.outline{background:transparent;border:1px solid #777;color:#fff}
-.leg{border-top:1px solid #2c2c2c;padding:10px 0}
-.leg:first-of-type{margin-top:8px}
-.leg-teams{font-size:14px;font-weight:bold;line-height:1.4;overflow-wrap:anywhere}
-.leg-meta{color:#999;font-size:11px;margin-top:5px}
-.leg-line{display:flex;justify-content:space-between;gap:8px;margin-top:5px;align-items:center}
-.leg-market{color:#aaa;font-size:11px}
-.leg-odd{color:#22c55e;font-weight:bold;font-size:13px}
-.leg-num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#22c55e;color:#000;font-size:12px;font-weight:bold;margin-right:7px;flex-shrink:0}
-.leg-result{display:inline-block;margin-left:6px;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:bold}
-.leg-result.WIN{background:#22c55e;color:#000}
-.leg-result.LOST{background:#ef4444;color:#fff}
-.leg-result.PENDING{background:#555;color:#fff}
-.live-badge{display:inline-block;margin-left:6px;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:bold;background:#f59e0b;color:#000}
-.live-badge.FT{background:#333;color:#fff}
-.live-badge.LIVE{background:#ef4444;color:#fff}
-.empty-leg{color:#999;padding:14px 2px;font-size:14px}
-.match-card{background:#222;border:1px solid #333;border-radius:12px;padding:12px;margin-top:10px}
-.match-league{font-size:11px;color:#999}
-.match-teams{font-weight:bold;margin:7px 0;font-size:15px;line-height:1.4}
-.match-time{font-size:12px;color:#aaa}
-.mkt{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.mkt span{background:#2a2a2a;border:1px solid #3a3a3a;padding:6px 9px;border-radius:20px;font-size:11px;font-weight:bold}
-.mkt b{color:#22c55e}
-.empty{text-align:center;padding:30px 10px;background:#222;border-radius:12px;color:#aaa;margin-top:10px;line-height:1.6}
-.float-btns{position:fixed;right:12px;bottom:16px;display:flex;flex-direction:column;gap:10px;z-index:999}
-.float-btn{width:52px;height:52px;border-radius:50%;border:1px solid #444;background:#222;color:#22c55e;font-size:20px;cursor:pointer}
-.footer{text-align:center;color:#888;font-size:12px;margin:28px 0 60px;line-height:1.7}
+body{background:#0f1013;color:#e8eaed;font-family:Inter,Arial,sans-serif;margin:0;padding:14px;overflow-x:hidden;font-size:16px;line-height:1.5}
+body>div,body>.group{max-width:1120px;margin-left:auto;margin-right:auto}
+.topbar{display:flex;gap:10px;flex-wrap:wrap}
+.topbar input,.topbar select{flex:1;min-width:160px;background:#1b1d22;border:1px solid #2c3038;color:#e8eaed;padding:14px 16px;border-radius:12px;font-size:16px;outline:none}
+.topbar select{flex:0 0 180px}
+.league-bar{margin-top:12px}
+.league-bar select{width:100%;background:#1b1d22;border:1px solid #2c3038;color:#e8eaed;padding:14px;border-radius:12px;font-size:17px}
+.loaded{color:#b0b5bd;font-size:16px;margin:16px 4px 6px}
+.date-tabs{display:flex;gap:10px;margin:14px 0;flex-wrap:wrap}
+.date-tabs a{padding:12px 20px;border-radius:24px;background:#1b1d22;color:#e8eaed;text-decoration:none;font-size:15px;border:1px solid #2c3038}
+.date-tabs a.active{background:#e5e7eb;color:#111;font-weight:bold;border-color:#e5e7eb}
+.info{color:#8b9099;font-size:13px;margin:10px 4px}
+.group{background:#17191f;border:1px solid #2a2e37;border-radius:16px;padding:20px;margin-top:20px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+.group-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.group-title{font-size:23px;font-weight:800;line-height:1.3;letter-spacing:.2px}
+.target{border:1px solid #9aa0aa;color:#c8ccd3;padding:8px 14px;border-radius:24px;font-size:14px;white-space:nowrap;font-weight:700;background:#1e2128}
+.inner{background:#1d2027;border:1px solid #2a2e37;border-radius:12px;padding:16px;margin-top:12px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill{border:none;border-radius:8px;padding:10px 14px;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap}
+.pill.odds{background:#e5e7eb;color:#111}
+.pill.img{background:#c9a86a;color:#111}
+.pill.grey{background:#2a2e37;color:#d5d9df}
+.pill.outline{background:transparent;border:1px solid #6b7280;color:#e8eaed}
+.leg{border-top:1px solid #2a2e37;padding:14px 0}
+.leg:first-of-type{margin-top:10px}
+.leg-teams{font-size:17px;font-weight:700;line-height:1.5;overflow-wrap:anywhere}
+.leg-meta{color:#9aa0aa;font-size:13px;margin-top:6px}
+.leg-line{display:flex;justify-content:space-between;gap:10px;margin-top:6px;align-items:center}
+.leg-market{color:#b0b5bd;font-size:13px}
+.leg-odd{color:#e8eaed;font-weight:800;font-size:16px}
+.leg-num{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e5e7eb;color:#111;font-size:14px;font-weight:800;margin-right:9px;flex-shrink:0}
+.leg-result{display:inline-block;margin-left:8px;padding:5px 11px;border-radius:12px;font-size:12px;font-weight:800}
+.leg-result.WIN{background:#24332a;color:#a7d8b5}
+.leg-result.LOST{background:#3a2626;color:#e5a3a3}
+.leg-result.PENDING{background:#2a2e37;color:#c8ccd3}
+.live-badge{display:inline-block;margin-left:8px;padding:5px 11px;border-radius:12px;font-size:12px;font-weight:800;background:#3a3320;color:#e8c87a}
+.live-badge.FT{background:#2a2e37;color:#e8eaed}
+.live-badge.LIVE{background:#3a2626;color:#e5a3a3}
+.empty-leg{color:#9aa0aa;padding:16px 2px;font-size:15px}
+.match-card{background:#17191f;border:1px solid #2a2e37;border-radius:14px;padding:18px;margin-top:14px;box-shadow:0 4px 18px rgba(0,0,0,.3)}
+.match-head{display:flex;gap:12px;align-items:flex-start}
+.match-num{background:#22262e;border:1px solid #9aa0aa;color:#e8eaed;font-weight:800;font-size:16px;padding:7px 12px;border-radius:10px;white-space:nowrap}
+.match-head-main{flex:1;min-width:0}
+.match-teams{font-weight:800;font-size:19px;line-height:1.4;overflow-wrap:anywhere}
+.match-league{color:#9aa0aa;font-size:14px;margin-top:5px;line-height:1.5}
+.match-vs{text-align:right;flex-shrink:0}
+.vs-badge{display:inline-block;background:#22262e;border:1px solid #c9a86a;color:#e8c87a;font-weight:800;font-size:13px;padding:6px 11px;border-radius:10px}
+.match-status{color:#9aa0aa;font-size:13px;margin-top:6px}
+.match-status.LIVE{color:#e5a3a3;font-weight:800}
+.mkt{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.mkt-box{background:#1d2027;border:1px solid #2a2e37;border-radius:10px;padding:12px 6px;text-align:center}
+.mkt-label{color:#b0b5bd;font-size:12px;line-height:1.3;min-height:30px;display:flex;align-items:center;justify-content:center}
+.mkt-odd{color:#fff;font-weight:800;font-size:18px;margin:5px 0 8px}
+.mkt-res{display:inline-block;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:800;border:1px solid #555;color:#ccc;background:transparent}
+.mkt-res.WIN{border-color:#5a7d66;color:#a7d8b5}
+.mkt-res.LOST{border-color:#8a4a4a;color:#e5a3a3}
+.mkt-res.LIVE{border-color:#c9a86a;color:#e8c87a}
+.empty{text-align:center;padding:34px 10px;background:#17191f;border-radius:12px;color:#9aa0aa;margin-top:12px;line-height:1.6;font-size:16px}
+.float-btns{position:fixed;right:14px;bottom:18px;display:flex;flex-direction:column;gap:10px;z-index:999}
+.float-btn{width:56px;height:56px;border-radius:50%;border:1px solid #3a3f4a;background:#1e2128;color:#e8eaed;font-size:21px;cursor:pointer}
+.footer{text-align:center;color:#8b9099;font-size:14px;margin:32px 0 70px;line-height:1.7}
+@media(min-width:900px){
+  body{padding:22px;font-size:17px}
+  .group{padding:26px}
+  .group-title{font-size:28px}
+  .leg-teams{font-size:20px}
+  .leg-meta,.leg-market{font-size:15px}
+  .leg-odd{font-size:19px}
+  .match-teams{font-size:22px}
+  .match-league{font-size:16px}
+  .mkt-label{font-size:14px}
+  .mkt-odd{font-size:21px}
+  .mkt-res,.leg-result,.live-badge{font-size:13px}
+  .pill{font-size:15px;padding:11px 16px}
+}
+@media(max-width:480px){.mkt{grid-template-columns:repeat(2,1fr);gap:8px}.mkt-label{font-size:12px}.mkt-odd{font-size:17px}.group-title{font-size:20px}.match-teams{font-size:17px}}
 </style>
 </head>
 <body id="top">
@@ -150,12 +177,19 @@ body{background:#1a1a1a;color:#fff;font-family:Arial,sans-serif;margin:0;padding
   <div id="fixturesList">
   {% for match in matches %}
   <div class="match-card" data-search="{{ (match.home ~ ' ' ~ match.away ~ ' ' ~ match.league)|lower }}" data-league="{{ match.league }}">
-    <div class="match-league">{{ match.country|default('') }} {{ match.league }} &bull; {{ match.status }}</div>
-    <div class="match-teams">{{ match.home }} vs {{ match.away }}</div>
-    <div class="match-time">{{ date }} | {{ match.time }}{% if match.status in ['1H','2H','HT','ET','LIVE'] %} | {{ match.score_home }} - {{ match.score_away }}{% if match.elapsed %} | {{ match.elapsed }}'{% endif %}{% elif match.status in ['FT','AET','PEN'] %} | FT {{ match.score_home }} - {{ match.score_away }}{% endif %}</div>
+    <div class="match-head">
+      <div class="match-num">#{{ loop.index }}</div>
+      <div class="match-head-main">
+        <div class="match-teams">{{ match.home }} vs {{ match.away }}</div>
+        <div class="match-league">{{ match.country|default('') }}: {{ match.league }} &bull; {{ date }}, {{ match.time }} WAT</div>
+      </div>
+      <div class="match-vs"><div class="vs-badge">VS</div><div class="match-status {% if match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE{% endif %}">{% if match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE {{ match.score_home }} - {{ match.score_away }}{% if match.elapsed %} {{ match.elapsed }}'{% endif %}{% elif match.status in ['FT','AET','PEN'] %}FT {{ match.score_home }} - {{ match.score_away }}{% else %}Upcoming{% endif %}</div></div>
+    </div>
     <div class="mkt">
-      {% for key, label in [('over15','Over 1.5'),('over25','Over 2.5'),('btts','BTTS'),('home_over15','Home Over 1.5'),('away_over15','Away Over 1.5'),('home_1x_over15','Home Win/Draw + Over 1.5'),('away_x2_over15','Away Win/Draw + Over 1.5')] %}
-        {% if match.markets.get(key) %}<span>{{ label }} <b>@ {{ match.markets[key] }}</b></span>{% endif %}
+      {% for key, label in [('home_1x_over15','1X & O1.5'),('away_x2_over15','X2 & O1.5'),('over15','OVER 1.5'),('over25','OVER 2.5'),('btts','BTTS'),('home_over15','HOME O1.5'),('away_over15','AWAY O1.5')] %}
+        {% if match.markets.get(key) %}
+        <div class="mkt-box"><div class="mkt-label">{{ label }}</div><div class="mkt-odd">{{ match.markets[key] }}</div><div class="mkt-res {% if match.market_results.get(key)=='WIN' %}WIN{% elif match.market_results.get(key)=='LOST' %}LOST{% elif match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE{% else %}PENDING{% endif %}">{% if match.market_results.get(key)=='WIN' %}WIN{% elif match.market_results.get(key)=='LOST' %}LOST{% elif match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE{% else %}PENDING{% endif %}</div></div>
+        {% endif %}
       {% endfor %}
     </div>
   </div>
