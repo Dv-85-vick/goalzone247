@@ -12,23 +12,32 @@ BASE = "https://v3.football.api-sports.io"
 HEADERS = {"x-apisports-key": API_KEY} if API_KEY else {}
 WAT = ZoneInfo("Africa/Lagos")
 
-CACHE_SECONDS = 7200
-LIVE_CHECK_SECONDS = 300
+# ============================================================
+# VICTOR'S RULES - DO NOT CHANGE WITHOUT HIS PERMISSION
+# 1. Odds ONLY for Today + Tomorrow. NEVER Yesterday / Next.
+# 2. Fixtures ONLY for Today + Tomorrow. Yesterday / Next = empty, 0 calls.
+# 3. Cache / Lock = 2 HOURS (7200s). One refresh blocks everyone else.
+# 4. Live scores: separate small check, Today only, every 5 min, NO odds.
+# 5. Daily cap: stop API calls after 80 calls, serve cached data.
+# 6. NEW COMBO MARKETS: home_1x_over15 (1X + Over 1.5) and away_x2_over15 (X2 + Over 1.5).
+#    Real combo odd if bookmaker offers it, else estimated fallback. Never multiply 1X x Over1.5.
+# ============================================================
+CACHE_SECONDS = 7200  # 2 hours
+LIVE_CHECK_SECONDS = 300  # 5 minutes, live scores only
 DAILY_CALL_CAP = 80
 ESTIMATED_MARKETS = {"over15": 1.28, "over25": 1.75, "btts": 1.80, "home_over15": 1.90, "away_over15": 2.20, "home_1x_over15": 1.55, "away_x2_over15": 1.60}
 MARKET_LABELS = {"over15": "Over 1.5", "over25": "Over 2.5", "btts": "BTTS", "home_over15": "Home Over 1.5", "away_over15": "Away Over 1.5", "home_1x_over15": "Home Win/Draw + Over 1.5", "away_x2_over15": "Away Win/Draw + Over 1.5"}
 FINISHED = ("FT", "AET", "PEN")
-def market_result(market_key, status, sh, sa):
-    if status not in FINISHED:
-        return "PENDING"
+def market_result(mk, status, sh, sa):
+    if status not in FINISHED: return "PENDING"
     total = (sh or 0) + (sa or 0)
-    if market_key == "over15": return "WIN" if total >= 2 else "LOST"
-    if market_key == "over25": return "WIN" if total >= 3 else "LOST"
-    if market_key == "btts": return "WIN" if (sh or 0) > 0 and (sa or 0) > 0 else "LOST"
-    if market_key == "home_over15": return "WIN" if (sh or 0) >= 2 else "LOST"
-    if market_key == "away_over15": return "WIN" if (sa or 0) >= 2 else "LOST"
-    if market_key == "home_1x_over15": return "WIN" if (sh or 0) >= (sa or 0) and total >= 2 else "LOST"
-    if market_key == "away_x2_over15": return "WIN" if (sa or 0) >= (sh or 0) and total >= 2 else "LOST"
+    if mk == "over15": return "WIN" if total >= 2 else "LOST"
+    if mk == "over25": return "WIN" if total >= 3 else "LOST"
+    if mk == "btts": return "WIN" if (sh or 0) > 0 and (sa or 0) > 0 else "LOST"
+    if mk == "home_over15": return "WIN" if (sh or 0) >= 2 else "LOST"
+    if mk == "away_over15": return "WIN" if (sa or 0) >= 2 else "LOST"
+    if mk == "home_1x_over15": return "WIN" if (sh or 0) >= (sa or 0) and total >= 2 else "LOST"
+    if mk == "away_x2_over15": return "WIN" if (sa or 0) >= (sh or 0) and total >= 2 else "LOST"
     return "PENDING"
 
 DATA_LOCK = threading.Lock()
@@ -48,6 +57,7 @@ def _can_call_api():
     return CACHE.get("api_calls_today", 0) < DAILY_CALL_CAP
 
 def api_get(endpoint, params, with_timezone=True):
+    """One API call. Returns []. Respects daily cap. Logs everything."""
     if not API_KEY:
         print("API_FOOTBALL_KEY is missing.")
         return []
@@ -89,7 +99,6 @@ def parse_odds(odds_data):
         for bookmaker in odds_data.get("bookmakers", []):
             for bet in bookmaker.get("bets", []):
                 name = bet.get("name", "")
-                low_name = name.lower()
                 for value in bet.get("values", []):
                     try:
                         odd = float(value.get("odd", 0))
@@ -98,7 +107,6 @@ def parse_odds(odds_data):
                     if odd <= 1:
                         continue
                     sel = value.get("value", "")
-                    low_sel = str(sel).lower()
                     if "Over/Under" in name:
                         if sel == "Over 1.5":
                             markets.setdefault("over15", odd)
@@ -110,22 +118,25 @@ def parse_odds(odds_data):
                         markets.setdefault("home_over15", odd)
                     if "Away Team" in name and "Over 1.5" in sel:
                         markets.setdefault("away_over15", odd)
-                    is_combo_bet = ("double chance" in low_name) or ("1x" in low_name) or ("x2" in low_name) or ("win or draw" in low_name)
-                    is_over15 = ("over 1.5" in low_sel) or ("1.5" in low_sel and "over" in low_sel)
-                    if is_combo_bet and is_over15 and "under" not in low_sel:
-                        is_1x = ("1x" in low_sel) or ("home" in low_sel and "draw" in low_sel) or ("home win or draw" in low_name and "away" not in low_sel)
-                        is_x2 = ("x2" in low_sel) or ("2x" in low_sel) or ("away" in low_sel and "draw" in low_sel) or ("away win or draw" in low_name and "home" not in low_sel)
-                        if is_1x:
-                            markets.setdefault("home_1x_over15", odd)
-                        elif is_x2:
-                            markets.setdefault("away_x2_over15", odd)
-            if len(markets) >= 7:
+            low_name = name.lower()
+            low_sel = sel.lower()
+            is_1x = ("1x" in low_sel) or ("home" in low_sel and "draw" in low_sel) or ("home win or draw" in low_name)
+            is_x2 = ("x2" in low_sel) or ("2x" in low_sel) or ("away" in low_sel and "draw" in low_sel) or ("away win or draw" in low_name)
+            is_over15 = ("over 1.5" in low_sel) or ("over 1.5" in low_name and "over" in low_sel) or ("1.5" in low_sel and "over" in low_sel)
+            is_combo_bet = ("double chance" in low_name) or ("1x" in low_name) or ("x2" in low_name) or ("win or draw" in low_name)
+            if is_combo_bet and is_over15:
+                if is_1x:
+                    markets.setdefault("home_1x_over15", odd)
+                elif is_x2:
+                    markets.setdefault("away_x2_over15", odd)
+            if len(markets) == 7:
                 break
         return markets
     except Exception:
         return markets
 
 def _build_day(date_string, with_odds):
+    """Build ONE day. with_odds=False means fixtures only, 0 odds calls."""
     fixtures = api_get("fixtures", {"date": date_string}, with_timezone=True)
     if len(fixtures) == 0:
         print(f"No fixtures for {date_string} with Lagos TZ, retrying UTC...")
@@ -155,8 +166,14 @@ def _build_day(date_string, with_odds):
             fd = fixture["fixture"].get("date", "")
             sd = fixture["fixture"].get("status", {})
             goals = fixture.get("goals", {})
-            _sh = goals.get("home") or 0; _sa = goals.get("away") or 0; _st = sd.get("short", "NS")
-            _results = {k: market_result(k, _st, _sh, _sa) for k in markets}
+            _st = sd.get("short", "NS"); _sh = goals.get("home") or 0; _sa = goals.get("away") or 0
+            _is_postponed = False
+            try:
+                _ko = datetime.fromisoformat(fd.replace("Z", "+00:00")).astimezone(WAT)
+                if _st == "NS" and (datetime.now(WAT) - _ko).total_seconds() > 2.5*3600:
+                    _is_postponed = True
+            except Exception:
+                pass
             matches.append({
                 "fixture_id": fid, "league": fixture["league"]["name"], "league_id": fixture["league"].get("id"),
                 "country": fixture["league"].get("country", ""),
@@ -164,8 +181,9 @@ def _build_day(date_string, with_odds):
                 "home": fixture["teams"]["home"]["name"], "away": fixture["teams"]["away"]["name"],
                 "time": fd[11:16] if len(fd) >= 16 else "", "status": _st,
                 "score_home": _sh, "score_away": _sa,
-                "elapsed": sd.get("elapsed") or 0, "markets": markets,
-                "market_results": _results, "market_labels": MARKET_LABELS,
+                "elapsed": sd.get("elapsed") or 0, "is_postponed": _is_postponed, "display_status": ("POSTPONED" if _is_postponed else _st), "markets": markets,
+                "market_results": {k: market_result(k, _st, _sh, _sa) for k in markets},
+                "market_labels": MARKET_LABELS,
                 "odds_estimated": is_estimated, "score_rank": score_rank
             })
         except (KeyError, TypeError, ValueError):
@@ -176,50 +194,70 @@ def _build_day(date_string, with_odds):
 
 def generate_accumulators(matches, date_string=""):
     def _leg(m, mk):
-        odd = m["markets"].get(mk)
-        return {"fixture_id": m["fixture_id"], "home": m["home"], "away": m["away"],
-                "league": m["league"], "country": m.get("country", ""), "date": m.get("date", date_string), "time": m["time"],
-                "score_home": m.get("score_home", 0), "score_away": m.get("score_away", 0), "status": m.get("status", "NS"),
-                "market": mk, "market_label": MARKET_LABELS.get(mk, mk), "odd": odd,
-                "result": market_result(mk, m.get("status", "NS"), m.get("score_home", 0), m.get("score_away", 0))}
+        return {"fixture_id": m["fixture_id"], "home": m["home"], "away": m["away"], "league": m["league"], "country": m.get("country", ""), "date": m.get("date", date_string), "time": m["time"], "score_home": m.get("score_home", 0), "score_away": m.get("score_away", 0), "status": m.get("status", "NS"), "is_postponed": m.get("is_postponed", False), "display_status": m.get("display_status", m.get("status", "NS")), "elapsed": m.get("elapsed", 0), "market": mk, "market_label": MARKET_LABELS.get(mk, mk), "odd": m["markets"].get(mk), "result": market_result(mk, m.get("status", "NS"), m.get("score_home", 0), m.get("score_away", 0))}
     def _wrap(legs, total, target):
-        results = [l["result"] for l in legs]
-        if results and all(r == "WIN" for r in results):
-            overall = "WIN"
-        elif any(r == "LOST" for r in results):
-            overall = "LOST"
-        else:
-            overall = "PENDING"
-        return {"legs": legs, "total_odds": round(total, 2), "count": len(legs), "target": target,
-                "overall_status": overall, "wins": results.count("WIN"), "losses": results.count("LOST"), "pending": results.count("PENDING")}
-    def build_single(mk, target):
-        legs, used, total = [], set(), 1.0
-        for m in sorted(matches, key=lambda x: x["markets"].get(mk, 99)):
-            fid = m["fixture_id"]
-            if fid in used: continue
-            if not m["markets"].get(mk): continue
-            legs.append(_leg(m, mk)); used.add(fid); total *= m["markets"][mk]
-            if total >= target: break
+        r = [l["result"] for l in legs]
+        overall = "WIN" if r and all(x == "WIN" for x in r) else ("LOST" if any(x == "LOST" for x in r) else "PENDING")
+        return {"legs": legs, "total_odds": round(total, 2), "count": len(legs), "target": target, "overall_status": overall, "wins": r.count("WIN"), "losses": r.count("LOST"), "pending": r.count("PENDING")}
+    USED = set()
+    def _pick(pool, mk, want_unused=True):
+        cands = sorted(pool, key=lambda x: x["markets"].get(mk, 99))
+        for m in cands:
+            if m["fixture_id"] not in USED and m["markets"].get(mk):
+                return m
+        if want_unused:
+            return None
+        for m in cands:
+            if m["markets"].get(mk):
+                return m
+        return None
+    def build_single(mk, target, pool=None):
+        pool = pool if pool is not None else matches
+        legs, total = [], 1.0
+        seen = set()
+        while total < target:
+            m = _pick([x for x in pool if x["fixture_id"] not in seen], mk, want_unused=True)
+            if m is None:
+                m = _pick([x for x in pool if x["fixture_id"] not in seen], mk, want_unused=False)
+            if m is None:
+                break
+            seen.add(m["fixture_id"]); USED.add(m["fixture_id"])
+            legs.append(_leg(m, mk)); total *= m["markets"].get(mk)
+            if len(legs) >= 20:
+                break
         return _wrap(legs, total, target)
-    def build_mix(target):
-        legs, used, total, pool = [], set(), 1.0, []
-        for m in matches:
-            for mk in ["over15", "over25", "btts", "home_over15", "away_over15", "home_1x_over15", "away_x2_over15"]:
-                odd = m["markets"].get(mk)
-                if odd: pool.append((m, mk))
-        pool.sort(key=lambda x: (x[0]["score_rank"], -x[0]["markets"][x[1]]), reverse=True)
-        for m, mk in pool:
-            if m["fixture_id"] in used: continue
-            legs.append(_leg(m, mk)); used.add(m["fixture_id"]); total *= m["markets"][mk]
-            if total >= target: break
-        return _wrap(legs, total, target)
+    def _in_window(m, start_h, end_h):
+        try:
+            hh = int((m.get("time") or "00:00")[:2])
+            return start_h <= hh < end_h
+        except Exception:
+            return False
+    midnight_pool = [m for m in matches if _in_window(m, 0, 2)] or matches
+    early_pool = [m for m in matches if _in_window(m, 2, 6)] or matches
     acc = {}
+    acc["midnight"] = build_single("over15", 6.0, pool=midnight_pool)
+    acc["early"] = build_single("over25", 6.0, pool=early_pool)
     for mk in ["over15", "over25", "btts", "home_over15", "away_over15", "home_1x_over15", "away_x2_over15"]:
         acc[mk] = {"3": build_single(mk, 3.0), "6": build_single(mk, 6.0)}
+    def build_mix(target):
+        order = ["over15", "over25", "btts", "home_over15", "away_over15", "home_1x_over15", "away_x2_over15"]
+        legs, total, seen = [], 1.0, set()
+        idx = 0
+        while total < target and len(legs) < 20:
+            mk = order[idx % len(order)]; idx += 1
+            m = _pick([x for x in matches if x["fixture_id"] not in seen], mk, want_unused=True)
+            if m is None:
+                m = _pick([x for x in matches if x["fixture_id"] not in seen], mk, want_unused=False)
+            if m is None:
+                continue
+            seen.add(m["fixture_id"]); USED.add(m["fixture_id"])
+            legs.append(_leg(m, mk)); total *= m["markets"].get(mk)
+        return _wrap(legs, total, target)
     acc["mix"] = {"10": build_mix(10.0), "20": build_mix(20.0)}
     return acc
 
 def build_all():
+    """Full refresh: ONLY Today + Tomorrow. Max 4 API calls (2 fixtures + 2 odds)."""
     now = datetime.now(WAT)
     today = now.strftime("%Y-%m-%d")
     tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -246,6 +284,7 @@ def refresh_cache_locked():
     return data
 
 def get_data():
+    """2-HOUR LOCK: if cache exists and is <2h old, return it. NO API call. Everyone shares it."""
     with DATA_LOCK:
         now = time.monotonic()
         if CACHE["data"] is not None and now - CACHE["last_fetch"] < CACHE_SECONDS:
@@ -256,6 +295,7 @@ def get_data():
         return refresh_cache_locked()
 
 def refresh_live_scores_only():
+    """Live check: Today only, every 5 min, fixtures only, NO odds. Updates score/time/status only."""
     with DATA_LOCK:
         if CACHE["data"] is None:
             return get_data()
@@ -297,10 +337,19 @@ def index():
     data = get_data()
     selected_date = request.args.get("date", "today")
     selected_data = data["dates"].get(selected_date) or data["dates"].get("today")
-    return render_template("index.html", data=data, selected_date=selected_date, dates=data["dates"], matches=selected_data["matches"], accas=selected_data["accumulators"], date=selected_data["date"], total=len(selected_data["matches"]), api_calls=data["api_calls_today"], last_update=data["last_update"], api_key_set=bool(API_KEY), cache_until=data.get("cache_until"))
+    def _rank(m):
+        s = m.get("status", "NS")
+        if s in ("1H", "2H", "HT", "ET", "P", "LIVE"): return 0
+        if m.get("is_postponed"): return 2
+        if s == "NS": return 1
+        if s in ("FT", "AET", "PEN"): return 3
+        return 2
+    ordered = sorted(selected_data["matches"], key=lambda m: (_rank(m), m.get("time", "")))
+    return render_template("index.html", data=data, selected_date=selected_date, dates=data["dates"], matches=ordered, accas=selected_data["accumulators"], date=selected_data["date"], total=len(selected_data["matches"]), api_calls=data["api_calls_today"], last_update=data["last_update"], api_key_set=bool(API_KEY), cache_until=data.get("cache_until"))
 
 @app.route("/api/refresh")
 def refresh():
+    """Manual refresh: BLOCKED for everyone if 2h lock is still active. One refresh blocks all others."""
     with DATA_LOCK:
         now = time.monotonic()
         if CACHE["data"] is not None and now - CACHE["last_fetch"] < CACHE_SECONDS:
