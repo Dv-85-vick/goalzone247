@@ -108,7 +108,7 @@ body>div,body>.group{max-width:1120px;margin-left:auto;margin-right:auto}
     {% for lg in matches|map(attribute='league')|unique|sort %}<option value="{{ lg }}">{{ lg }}</option>{% endfor %}
   </select>
 </div>
-<div class="loaded">{{ total }} fixtures loaded successfully.</div>
+<div class="loaded">{{ total }} fixtures loaded successfully.</div><div id="gz-loading" style="color:#e8c87a;font-size:15px;font-weight:700;margin:8px 4px">{% if total == 0 %}Loading matches in background... please wait, do not close.{% endif %}</div>
 <div class="date-tabs">
   <a href="/?date=yesterday" class="{% if selected_date=='yesterday' %}active{% endif %}">Yesterday</a>
   <a href="/?date=today" class="{% if selected_date=='today' %}active{% endif %}">Today</a>
@@ -228,6 +228,27 @@ function shareCard(btn){
   else if(navigator.clipboard){navigator.clipboard.writeText(text);alert('Copied!');}
   else{alert(text);}
 }
+</script>
+<script>
+// v13 INSTANT LOAD: page opens with 0 matches, then fetch real data in background.
+// If /api/data is slow, we just retry - page never shows 504.
+(function(){
+  if (window.__gzLoaded) return; window.__gzLoaded = true;
+  var tries = 0;
+  function tryLoad(){
+    tries++;
+    fetch('/api/data').then(function(r){ return r.json(); }).then(function(j){
+      if (j.status === 'ok' && (j.today > 0 || j.tomorrow > 0)) {
+        // Data is ready on server - reload once to show it (server will serve from cache instantly)
+        if (!sessionStorage.getItem('gz_reloaded')) { sessionStorage.setItem('gz_reloaded','1'); location.reload(); }
+        else { var el=document.getElementById('gz-loading'); if(el) el.textContent='Loaded: '+j.today+' Today + '+j.tomorrow+' Tomorrow matches.'; }
+      } else if (tries < 20) { setTimeout(tryLoad, 5000); var el=document.getElementById('gz-loading'); if(el) el.textContent='Loading matches... try '+tries+' (API is slow, please wait)...'; }
+    }).catch(function(){ if (tries < 20) setTimeout(tryLoad, 5000); });
+  }
+  // Only auto-load when page opened empty (total==0)
+  var loadedEl = document.querySelector('.loaded');
+  if (loadedEl && loadedEl.textContent.indexOf('0 fixtures') !== -1) { tryLoad(); }
+})();
 </script>
 </body>
 </html>
