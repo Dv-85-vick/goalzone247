@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>GoalsZone24/7 - Admin</title>
+<style>body{background:#0f1013;color:#e8eaed;font-family:Inter,Arial,sans-serif;margin:0;padding:20px;max-width:700px;margin-left:auto;margin-right:auto}h1{font-size:26px}input{width:100%;padding:14px;border-radius:10px;border:1px solid #2c3038;background:#1b1d22;color:#fff;font-size:16px;margin:8px 0}button{width:100%;padding:16px;border-radius:10px;border:none;font-size:18px;font-weight:900;cursor:pointer;margin:8px 0}.refresh{background:#e5e7eb;color:#111}.live{background:#c0392b;color:#fff}.info{background:#17191f;border:1px solid #2a2e37;border-radius:12px;padding:16px;line-height:1.7;font-size:15px}.msg{color:#e8c87a;font-weight:700;margin:10px 0;min-height:24px}a{color:#9aa0aa}</style></head>
+<body><h1>🔒 GoalsZone24/7 — Admin Only</h1><p style="color:#9aa0aa">Only Victor can use this page. Visitors never see it.</p>
+<div class="info">API Calls Today: {{ api_calls }}<br>Last Update: {{ last_update }}<br>Quota Exhausted: {{ quota_exhausted }}<br>Auto: Once daily at 00:05 WAT</div>
+<label>Admin Password</label><input id="pwd" type="password" placeholder="Enter ADMIN_PASSWORD (default goalszone247 - change it in Vercel)">
+<div id="msg" class="msg"></div>
+<button class="refresh" onclick="doRefresh()">🔄 REFRESH DATA ONCE (2 calls - fixtures + accumulators + scores)</button>
+<button class="live" onclick="doLive()">🔴 LIVE SCORE UPDATE (1 call - scores only, every 5 min)</button>
+<p><a href="/">← Back to public site</a></p>
+<script>
+function doRefresh(){var k=document.getElementById('pwd').value;document.getElementById('msg').textContent='Refreshing... please wait...';fetch('/api/data?go=1&key='+encodeURIComponent(k)).then(r=>r.json()).then(j=>{document.getElementById('msg').textContent=j.message||JSON.stringify(j); if(j.status==='ok') setTimeout(()=>location.href='/',1500);}).catch(()=>{document.getElementById('msg').textContent='Failed - check password.';});}
+function doLive(){var k=document.getElementById('pwd').value;document.getElementById('msg').textContent='Updating live scores...';fetch('/api/live?key='+encodeURIComponent(k)).then(r=>r.json()).then(j=>{document.getElementById('msg').textContent='Live scores updated! Go to public site to see new scores.'; setTimeout(()=>location.href='/',1500);}).catch(()=>{document.getElementById('msg').textContent='Failed - check password or wait 5 min.';});}
+</script></body></html>
