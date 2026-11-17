@@ -21,11 +21,52 @@ WAT = ZoneInfo("Africa/Lagos")
 # 5. Daily cap: stop API calls after 80 calls, serve cached data.
 # 6. NEW COMBO MARKETS: home_1x_over15 (1X + Over 1.5) and away_x2_over15 (X2 + Over 1.5).
 #    Real combo odd if bookmaker offers it, else estimated fallback. Never multiply 1X x Over1.5.
+# 7. ESTIMATED ODDS ARE LOW AND SAFE - never show big fake odds.
+# 8. BANKER TARGET 2.50, HIGH ROLLER TARGET 8.00 - more legs, more odds, higher yield.
+# 9. STRONG LEAGUES FIRST - accumulators pick strong leagues before small leagues.
+# 10. SMART PICKING + TIER SYSTEM - NO SHORTAGE.
+#     Tier 1 STRONG first, Tier 2 GOOD second, Tier 3 FILL last. Card ALWAYS fills.
+# 11. MIDNIGHT = 00:00-03:00 PURE MIXED 12.00. EARLY MORNING = 04:00-10:00 PURE MIXED 12.00.
+#     Both rotate all 7 markets. MEGA MIXED = 10.00 + 20.00, rotates all 7 markets.
 # ============================================================
-CACHE_SECONDS = 7200  # 2 hours
-LIVE_CHECK_SECONDS = 300  # 5 minutes, live scores only
+CACHE_SECONDS = 7200
+LIVE_CHECK_SECONDS = 300
 DAILY_CALL_CAP = 80
-ESTIMATED_MARKETS = {"over15": 1.28, "over25": 1.75, "btts": 1.80, "home_over15": 1.90, "away_over15": 2.20, "home_1x_over15": 1.55, "away_x2_over15": 1.60}
+ESTIMATED_MARKETS = {"over15": 1.25, "over25": 1.50, "btts": 1.65, "home_over15": 1.60, "away_over15": 1.60, "home_1x_over15": 1.45, "away_x2_over15": 1.50}
+STRONG_LEAGUES = {"Premier League", "Championship", "La Liga", "LaLiga", "Bundesliga", "2. Bundesliga", "Serie A", "Serie B", "Ligue 1", "Ligue 2", "Eredivisie", "Primeira Liga", "Pro League", "Super Lig", "Primera Division", "Liga MX", "MLS", "Major League Soccer", "Premiership", "Super League", "Superliga", "Allsvenskan", "Eliteserien", "Ekstraklasa", "First League", "HNL", "Liga Portugal", "Scottish Premiership", "Austrian Bundesliga", "Swiss Super League", "Danish Superliga", "Norwegian Eliteserien", "Swedish Allsvenskan", "Polish Ekstraklasa", "Czech First League", "Croatian HNL", "Greek Super League", "Israeli Premier League", "Romanian Liga I", "Hungarian NB I", "Slovenian PrvaLiga", "Serbian SuperLiga", "Bulgarian First League", "Brazil Serie A", "Argentina Primera Division", "Chile Primera Division", "Colombia Primera A", "Uruguay Primera Division", "Peru Liga 1", "Ecuador Liga Pro", "Japan J1 League", "Korea K League 1", "Australia A-League", "South Africa Premier Division", "Egypt Premier League", "Morocco Botola Pro", "Nigeria NPFL", "Ghana Premier League", "Kenya Premier League"}
+# TIER SYSTEM - NO SHORTAGE. Tier 1 = STRONG (preferred). Tier 2 = GOOD. Tier 3 = FILL (best of rest).
+SMART_MAX_ODD = {"over15": 1.45, "over25": 1.85, "btts": 1.95, "home_over15": 1.95, "away_over15": 1.95, "home_1x_over15": 1.75, "away_x2_over15": 1.85}
+def tier_of(m, mk):
+    odd = m["markets"].get(mk, 99)
+    if odd <= SMART_MAX_ODD.get(mk, 99): return "STRONG"
+    if odd <= SMART_MAX_ODD.get(mk, 99) + 0.35: return "GOOD"
+    return "FILL"
+def smart_score(m, mk):
+    odd = m["markets"].get(mk, 99)
+    if odd is None or odd <= 1: return -999
+    confidence = (1.0 / odd) * 100
+    bonus = 15 if m.get("league") in STRONG_LEAGUES else 0
+    return confidence + bonus
+def why_pick(m, mk):
+    odd = m["markets"].get(mk, 0)
+    tier = tier_of(m, mk)
+    league = m.get("league","")
+    strong = league in STRONG_LEAGUES
+    if mk == "away_over15":
+        return f"Away team strong in attack - bookmaker confident @ {odd} - {'Strong league: '+league if strong else 'Good away scoring form'}"
+    if mk == "home_over15":
+        return f"Home team strong in attack - bookmaker confident @ {odd} - {'Strong league: '+league if strong else 'Good home scoring form'}"
+    if mk == "home_1x_over15":
+        return f"Home team strong, hard to beat at home + goals expected @ {odd} - {'Strong league: '+league if strong else 'Home form strong'}"
+    if mk == "away_x2_over15":
+        return f"Away team strong, hard to beat away + goals expected @ {odd} - {'Strong league: '+league if strong else 'Away form strong'}"
+    if mk == "over15":
+        return f"Both teams score goals - bookmaker confident @ {odd} - {'Strong league: '+league if strong else 'Goals expected'}"
+    if mk == "over25":
+        return f"High-scoring game expected - bookmaker confident @ {odd} - {'Strong league: '+league if strong else 'Goals expected'}"
+    if mk == "btts":
+        return f"Both teams score regularly - bookmaker confident @ {odd} - {'Strong league: '+league if strong else 'BTTS form strong'}"
+    return f"Bookmaker confident @ {odd}"
 MARKET_LABELS = {"over15": "Over 1.5", "over25": "Over 2.5", "btts": "BTTS", "home_over15": "Home Over 1.5", "away_over15": "Away Over 1.5", "home_1x_over15": "Home Win/Draw + Over 1.5", "away_x2_over15": "Away Win/Draw + Over 1.5"}
 FINISHED = ("FT", "AET", "PEN")
 def market_result(mk, status, sh, sa):
@@ -57,7 +98,6 @@ def _can_call_api():
     return CACHE.get("api_calls_today", 0) < DAILY_CALL_CAP
 
 def api_get(endpoint, params, with_timezone=True):
-    """One API call. Returns []. Respects daily cap. Logs everything."""
     if not API_KEY:
         print("API_FOOTBALL_KEY is missing.")
         return []
@@ -136,7 +176,6 @@ def parse_odds(odds_data):
         return markets
 
 def _build_day(date_string, with_odds):
-    """Build ONE day. with_odds=False means fixtures only, 0 odds calls."""
     fixtures = api_get("fixtures", {"date": date_string}, with_timezone=True)
     if len(fixtures) == 0:
         print(f"No fixtures for {date_string} with Lagos TZ, retrying UTC...")
@@ -194,14 +233,16 @@ def _build_day(date_string, with_odds):
 
 def generate_accumulators(matches, date_string=""):
     def _leg(m, mk):
-        return {"fixture_id": m["fixture_id"], "home": m["home"], "away": m["away"], "league": m["league"], "country": m.get("country", ""), "date": m.get("date", date_string), "time": m["time"], "score_home": m.get("score_home", 0), "score_away": m.get("score_away", 0), "status": m.get("status", "NS"), "is_postponed": m.get("is_postponed", False), "display_status": m.get("display_status", m.get("status", "NS")), "elapsed": m.get("elapsed", 0), "market": mk, "market_label": MARKET_LABELS.get(mk, mk), "odd": m["markets"].get(mk), "result": market_result(mk, m.get("status", "NS"), m.get("score_home", 0), m.get("score_away", 0))}
+        return {"fixture_id": m["fixture_id"], "home": m["home"], "away": m["away"], "league": m["league"], "country": m.get("country", ""), "date": m.get("date", date_string), "time": m["time"], "score_home": m.get("score_home", 0), "score_away": m.get("score_away", 0), "status": m.get("status", "NS"), "is_postponed": m.get("is_postponed", False), "display_status": m.get("display_status", m.get("status", "NS")), "elapsed": m.get("elapsed", 0), "market": mk, "market_label": MARKET_LABELS.get(mk, mk), "odd": m["markets"].get(mk), "result": market_result(mk, m.get("status", "NS"), m.get("score_home", 0), m.get("score_away", 0)), "why": why_pick(m, mk) + f" - Tier: {tier_of(m, mk)}", "smart_score": round(smart_score(m, mk), 1)}
     def _wrap(legs, total, target):
         r = [l["result"] for l in legs]
         overall = "WIN" if r and all(x == "WIN" for x in r) else ("LOST" if any(x == "LOST" for x in r) else "PENDING")
         return {"legs": legs, "total_odds": round(total, 2), "count": len(legs), "target": target, "overall_status": overall, "wins": r.count("WIN"), "losses": r.count("LOST"), "pending": r.count("PENDING")}
     USED = set()
     def _pick(pool, mk, want_unused=True):
-        cands = sorted(pool, key=lambda x: x["markets"].get(mk, 99))
+        def _tier_rank(x):
+            return {"STRONG": 0, "GOOD": 1, "FILL": 2}.get(tier_of(x, mk), 2)
+        cands = sorted(pool, key=lambda x: (_tier_rank(x), -smart_score(x, mk)))
         for m in cands:
             if m["fixture_id"] not in USED and m["markets"].get(mk):
                 return m
@@ -232,13 +273,28 @@ def generate_accumulators(matches, date_string=""):
             return start_h <= hh < end_h
         except Exception:
             return False
-    midnight_pool = [m for m in matches if _in_window(m, 0, 2)] or matches
-    early_pool = [m for m in matches if _in_window(m, 2, 6)] or matches
+    # PURE MIXED - Midnight 00:00-03:00, Early 04:00-10:00. Rotate all 7 markets, Tier picking, never same fixture twice.
+    def build_mix_pool(target, pool):
+        order = ["over15", "over25", "btts", "home_over15", "away_over15", "home_1x_over15", "away_x2_over15"]
+        legs, total, seen = [], 1.0, set()
+        idx = 0
+        while total < target and len(legs) < 20:
+            mk = order[idx % len(order)]; idx += 1
+            m = _pick([x for x in pool if x["fixture_id"] not in seen], mk, want_unused=True)
+            if m is None:
+                m = _pick([x for x in pool if x["fixture_id"] not in seen], mk, want_unused=False)
+            if m is None:
+                continue
+            seen.add(m["fixture_id"]); USED.add(m["fixture_id"])
+            legs.append(_leg(m, mk)); total *= m["markets"].get(mk)
+        return _wrap(legs, total, target)
+    midnight_pool = [m for m in matches if _in_window(m, 0, 3)] or matches
+    early_pool = [m for m in matches if _in_window(m, 4, 10)] or matches
     acc = {}
-    acc["midnight"] = build_single("over15", 6.0, pool=midnight_pool)
-    acc["early"] = build_single("over25", 6.0, pool=early_pool)
+    acc["midnight"] = build_mix_pool(12.0, midnight_pool)
+    acc["early"] = build_mix_pool(12.0, early_pool)
     for mk in ["over15", "over25", "btts", "home_over15", "away_over15", "home_1x_over15", "away_x2_over15"]:
-        acc[mk] = {"3": build_single(mk, 3.0), "6": build_single(mk, 6.0)}
+        acc[mk] = {"2.5": build_single(mk, 2.5), "8": build_single(mk, 8.0)}
     def build_mix(target):
         order = ["over15", "over25", "btts", "home_over15", "away_over15", "home_1x_over15", "away_x2_over15"]
         legs, total, seen = [], 1.0, set()
@@ -257,7 +313,6 @@ def generate_accumulators(matches, date_string=""):
     return acc
 
 def build_all():
-    """Full refresh: ONLY Today + Tomorrow. Max 4 API calls (2 fixtures + 2 odds)."""
     now = datetime.now(WAT)
     today = now.strftime("%Y-%m-%d")
     tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -284,7 +339,6 @@ def refresh_cache_locked():
     return data
 
 def get_data():
-    """2-HOUR LOCK: if cache exists and is <2h old, return it. NO API call. Everyone shares it."""
     with DATA_LOCK:
         now = time.monotonic()
         if CACHE["data"] is not None and now - CACHE["last_fetch"] < CACHE_SECONDS:
@@ -295,7 +349,6 @@ def get_data():
         return refresh_cache_locked()
 
 def refresh_live_scores_only():
-    """Live check: Today only, every 5 min, fixtures only, NO odds. Updates score/time/status only."""
     with DATA_LOCK:
         if CACHE["data"] is None:
             return get_data()
@@ -349,7 +402,6 @@ def index():
 
 @app.route("/api/refresh")
 def refresh():
-    """Manual refresh: BLOCKED for everyone if 2h lock is still active. One refresh blocks all others."""
     with DATA_LOCK:
         now = time.monotonic()
         if CACHE["data"] is not None and now - CACHE["last_fetch"] < CACHE_SECONDS:
