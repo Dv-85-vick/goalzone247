@@ -24,17 +24,15 @@ WAT = ZoneInfo("Africa/Lagos")
 # 7. ESTIMATED ODDS ARE LOW AND SAFE - never show big fake odds.
 # 8. BANKER TARGET 2.50, HIGH ROLLER TARGET 8.00 - more legs, more odds, higher yield.
 # 9. STRONG LEAGUES FIRST - accumulators pick strong leagues before small leagues.
-# 10. SMART PICKING + TIER SYSTEM - NO SHORTAGE.
-#     Tier 1 STRONG first, Tier 2 GOOD second, Tier 3 FILL last. Card ALWAYS fills.
+# 10. SMART PICKING + TIER SYSTEM - NO SHORTAGE. STRONG first, GOOD second, FILL last.
 # 11. MIDNIGHT = 00:00-03:00 PURE MIXED 12.00. EARLY MORNING = 04:00-10:00 PURE MIXED 12.00.
-#     Both rotate all 7 markets. MEGA MIXED = 10.00 + 20.00, rotates all 7 markets.
+# 12. FAST: timeout 6s, no retries, max 250 fixtures, fallback empty page - never 504.
 # ============================================================
 CACHE_SECONDS = 7200
 LIVE_CHECK_SECONDS = 300
 DAILY_CALL_CAP = 80
 ESTIMATED_MARKETS = {"over15": 1.25, "over25": 1.50, "btts": 1.65, "home_over15": 1.60, "away_over15": 1.60, "home_1x_over15": 1.45, "away_x2_over15": 1.50}
 STRONG_LEAGUES = {"Premier League", "Championship", "La Liga", "LaLiga", "Bundesliga", "2. Bundesliga", "Serie A", "Serie B", "Ligue 1", "Ligue 2", "Eredivisie", "Primeira Liga", "Pro League", "Super Lig", "Primera Division", "Liga MX", "MLS", "Major League Soccer", "Premiership", "Super League", "Superliga", "Allsvenskan", "Eliteserien", "Ekstraklasa", "First League", "HNL", "Liga Portugal", "Scottish Premiership", "Austrian Bundesliga", "Swiss Super League", "Danish Superliga", "Norwegian Eliteserien", "Swedish Allsvenskan", "Polish Ekstraklasa", "Czech First League", "Croatian HNL", "Greek Super League", "Israeli Premier League", "Romanian Liga I", "Hungarian NB I", "Slovenian PrvaLiga", "Serbian SuperLiga", "Bulgarian First League", "Brazil Serie A", "Argentina Primera Division", "Chile Primera Division", "Colombia Primera A", "Uruguay Primera Division", "Peru Liga 1", "Ecuador Liga Pro", "Japan J1 League", "Korea K League 1", "Australia A-League", "South Africa Premier Division", "Egypt Premier League", "Morocco Botola Pro", "Nigeria NPFL", "Ghana Premier League", "Kenya Premier League"}
-# TIER SYSTEM - NO SHORTAGE. Tier 1 = STRONG (preferred). Tier 2 = GOOD. Tier 3 = FILL (best of rest).
 SMART_MAX_ODD = {"over15": 1.45, "over25": 1.85, "btts": 1.95, "home_over15": 1.95, "away_over15": 1.95, "home_1x_over15": 1.75, "away_x2_over15": 1.85}
 def tier_of(m, mk):
     odd = m["markets"].get(mk, 99)
@@ -49,7 +47,6 @@ def smart_score(m, mk):
     return confidence + bonus
 def why_pick(m, mk):
     odd = m["markets"].get(mk, 0)
-    tier = tier_of(m, mk)
     league = m.get("league","")
     strong = league in STRONG_LEAGUES
     if mk == "away_over15":
@@ -108,7 +105,7 @@ def api_get(endpoint, params, with_timezone=True):
         p = dict(params)
         if with_timezone and "timezone" not in p:
             p["timezone"] = "Africa/Lagos"
-        response = requests.get(f"{BASE}/{endpoint}", headers=HEADERS, params=p, timeout=20)
+        response = requests.get(f"{BASE}/{endpoint}", headers=HEADERS, params=p, timeout=6)
         CACHE["api_calls_today"] = CACHE.get("api_calls_today", 0) + 1
         print(f"API {endpoint} params={p} -> status={response.status_code} | calls_today={CACHE['api_calls_today']}/{DAILY_CALL_CAP}")
         if response.status_code == 200:
@@ -177,12 +174,6 @@ def parse_odds(odds_data):
 
 def _build_day(date_string, with_odds):
     fixtures = api_get("fixtures", {"date": date_string}, with_timezone=True)
-    if len(fixtures) == 0:
-        print(f"No fixtures for {date_string} with Lagos TZ, retrying UTC...")
-        fixtures = api_get("fixtures", {"date": date_string, "timezone": "UTC"}, with_timezone=False)
-    if len(fixtures) == 0:
-        print(f"Still 0 for {date_string}, retrying no timezone...")
-        fixtures = api_get("fixtures", {"date": date_string}, with_timezone=False)
     odds_map = {}
     if with_odds:
         odds_list = api_get("odds", {"date": date_string}, with_timezone=True)
@@ -192,7 +183,7 @@ def _build_day(date_string, with_odds):
             except (KeyError, TypeError):
                 continue
     matches = []
-    for fixture in fixtures[:500]:
+    for fixture in fixtures[:250]:
         try:
             fid = fixture["fixture"]["id"]
             markets = parse_odds(odds_map.get(fid)) if with_odds else {}
@@ -273,7 +264,6 @@ def generate_accumulators(matches, date_string=""):
             return start_h <= hh < end_h
         except Exception:
             return False
-    # PURE MIXED - Midnight 00:00-03:00, Early 04:00-10:00. Rotate all 7 markets, Tier picking, never same fixture twice.
     def build_mix_pool(target, pool):
         order = ["over15", "over25", "btts", "home_over15", "away_over15", "home_1x_over15", "away_x2_over15"]
         legs, total, seen = [], 1.0, set()
@@ -338,15 +328,25 @@ def refresh_cache_locked():
     CACHE["last_fetch"] = time.monotonic()
     return data
 
+def _empty_data():
+    now = datetime.now(WAT)
+    today = now.strftime("%Y-%m-%d")
+    tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+    yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+    next_day = (now + timedelta(days=2)).strftime("%Y-%m-%d")
+    return {"dates": {"yesterday": {"date": yesterday, "matches": [], "accumulators": {}}, "today": {"date": today, "matches": [], "accumulators": {}}, "tomorrow": {"date": tomorrow, "matches": [], "accumulators": {}}, "next_tomorrow": {"date": next_day, "matches": [], "accumulators": {}}}, "current_date": today, "last_update": datetime.now(WAT).isoformat(), "api_calls_today": CACHE.get("api_calls_today", 0), "last_error": CACHE.get("last_error"), "cache_until": (datetime.now(WAT) + timedelta(seconds=CACHE_SECONDS)).isoformat()}
+
 def get_data():
     with DATA_LOCK:
         now = time.monotonic()
         if CACHE["data"] is not None and now - CACHE["last_fetch"] < CACHE_SECONDS:
-            remaining = int(CACHE_SECONDS - (now - CACHE["last_fetch"]))
-            print(f"CACHE HIT: serving cached data, {remaining}s left in 2h lock. No API call.")
             return CACHE["data"]
-        print("CACHE EXPIRED (2h) or empty - doing full refresh...")
-        return refresh_cache_locked()
+        try:
+            return refresh_cache_locked()
+        except Exception as e:
+            print(f"FAST FALLBACK: build failed {e} - returning empty page, no 504")
+            CACHE["last_error"] = str(e)
+            return _empty_data()
 
 def refresh_live_scores_only():
     with DATA_LOCK:
