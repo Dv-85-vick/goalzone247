@@ -1,150 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GoalsZone24/7</title>
-<style>
-*{box-sizing:border-box}
-body{background:#0f1013;color:#e8eaed;font-family:Inter,Arial,sans-serif;margin:0;padding:14px;overflow-x:hidden;font-size:16px;line-height:1.5}
-body>div,body>.group{max-width:1120px;margin-left:auto;margin-right:auto}
-.topbar{display:flex;gap:10px;flex-wrap:wrap}
-.topbar input,.topbar select{flex:1;min-width:160px;background:#1b1d22;border:1px solid #2c3038;color:#e8eaed;padding:14px 16px;border-radius:12px;font-size:16px;outline:none}
-.topbar select{flex:0 0 180px}
-.league-bar{margin-top:12px}
-.league-bar select{width:100%;background:#1b1d22;border:1px solid #2c3038;color:#e8eaed;padding:14px;border-radius:12px;font-size:17px}
-.loaded{color:#b0b5bd;font-size:16px;margin:16px 4px 6px}
-.date-tabs{display:flex;gap:10px;margin:14px 0;flex-wrap:wrap}
-.date-tabs a{padding:12px 20px;border-radius:24px;background:#1b1d22;color:#e8eaed;text-decoration:none;font-size:15px;border:1px solid #2c3038}
-.date-tabs a.active{background:#e5e7eb;color:#111;font-weight:bold;border-color:#e5e7eb}
-.info{color:#8b9099;font-size:13px;margin:10px 4px}
-.group{background:#17191f;border:1px solid #2a2e37;border-radius:16px;padding:20px;margin-top:20px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
-.group-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
-.group-title{font-size:25px;font-weight:900;line-height:1.3;letter-spacing:.2px;color:#ffffff}
-.target{border:1px solid #9aa0aa;color:#c8ccd3;padding:8px 14px;border-radius:24px;font-size:14px;white-space:nowrap;font-weight:700;background:#1e2128}
-.inner{background:#1d2027;border:1px solid #2a2e37;border-radius:12px;padding:16px;margin-top:12px}
-.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.pill{border:none;border-radius:8px;padding:11px 15px;font-size:15px;font-weight:900;cursor:pointer;white-space:nowrap}
-.pill.odds{background:#e5e7eb;color:#111}
-.pill.img{background:#c9a86a;color:#111}
-.pill.grey{background:#2a2e37;color:#d5d9df}
-.pill.outline{background:transparent;border:1px solid #6b7280;color:#e8eaed}
-.leg{border-top:1px solid #2a2e37;padding:14px 0}
-.leg:first-of-type{margin-top:10px}
-.leg-teams{font-size:21px;font-weight:900;line-height:1.45;overflow-wrap:anywhere;color:#ffffff}
-.leg-meta{color:#d5d9df;font-size:16px;font-weight:600;margin-top:8px;line-height:1.5}
-.leg-line{display:flex;justify-content:space-between;gap:10px;margin-top:6px;align-items:center}
-.leg-market{color:#e8eaed;font-size:16px;font-weight:800}
-.leg-odd{color:#ffffff;font-weight:900;font-size:21px}
-.leg-num{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e5e7eb;color:#111;font-size:14px;font-weight:800;margin-right:9px;flex-shrink:0}
-.leg-result{display:inline-block;margin-left:8px;padding:6px 12px;border-radius:12px;font-size:14px;font-weight:900}
-.leg-result.WIN{background:#24332a;color:#a7d8b5}
-.leg-result.LOST{background:#3a2626;color:#e5a3a3}
-.leg-result.PENDING{background:#2a2e37;color:#c8ccd3}
-.live-badge{display:inline-block;margin-left:8px;padding:6px 12px;border-radius:12px;font-size:14px;font-weight:900;background:#3a3320;color:#e8c87a}
-.live-badge.FT{background:#2a2e37;color:#e8eaed}
-.live-badge.LIVE{background:#3a2626;color:#e5a3a3}
-.check-link{text-decoration:none;color:inherit;display:inline-block;cursor:pointer}
-.check-link:hover{opacity:.85;text-decoration:underline}
-.mkt-res.check-link{border-color:#c9a86a;color:#e8c87a}
-.leg-why{color:#a7d8b5;font-size:14px;font-weight:700;margin-top:6px;line-height:1.5;background:#1a2a20;border:1px solid #2a4a33;padding:8px 10px;border-radius:8px}
-.empty-leg{color:#9aa0aa;padding:16px 2px;font-size:15px}
-.match-card{background:#17191f;border:1px solid #2a2e37;border-radius:14px;padding:18px;margin-top:14px;box-shadow:0 4px 18px rgba(0,0,0,.3)}
-.match-head{display:flex;gap:12px;align-items:flex-start}
-.match-num{background:#22262e;border:1px solid #9aa0aa;color:#e8eaed;font-weight:800;font-size:16px;padding:7px 12px;border-radius:10px;white-space:nowrap}
-.match-head-main{flex:1;min-width:0}
-.match-teams{font-weight:900;font-size:21px;line-height:1.4;overflow-wrap:anywhere;color:#ffffff}
-.match-league{color:#d5d9df;font-size:16px;font-weight:600;margin-top:6px;line-height:1.5}
-.match-vs{text-align:right;flex-shrink:0}
-.vs-badge{display:inline-block;background:#22262e;border:1px solid #c9a86a;color:#e8c87a;font-weight:800;font-size:13px;padding:6px 11px;border-radius:10px}
-.match-status{color:#9aa0aa;font-size:13px;margin-top:6px}
-.match-status.LIVE{color:#e5a3a3;font-weight:800}
-.mkt{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
-.mkt-box{background:#1d2027;border:1px solid #2a2e37;border-radius:10px;padding:12px 6px;text-align:center}
-.mkt-label{color:#e8eaed;font-size:14px;font-weight:800;line-height:1.3;min-height:30px;display:flex;align-items:center;justify-content:center}
-.mkt-odd{color:#fff;font-weight:900;font-size:21px;margin:5px 0 8px}
-.mkt-res{display:inline-block;padding:6px 11px;border-radius:6px;font-size:14px;font-weight:900;border:1px solid #555;color:#ccc;background:transparent}
-.mkt-res.WIN{border-color:#5a7d66;color:#a7d8b5}
-.mkt-res.LOST{border-color:#8a4a4a;color:#e5a3a3}
-.mkt-res.LIVE{border-color:#c9a86a;color:#e8c87a}
-.empty{text-align:center;padding:34px 10px;background:#17191f;border-radius:12px;color:#9aa0aa;margin-top:12px;line-height:1.6;font-size:16px}
-.float-btns{position:fixed;right:14px;bottom:18px;display:flex;flex-direction:column;gap:10px;z-index:999}
-.float-btn{width:56px;height:56px;border-radius:50%;border:1px solid #3a3f4a;background:#1e2128;color:#e8eaed;font-size:21px;cursor:pointer}
-.footer{text-align:center;color:#8b9099;font-size:14px;margin:32px 0 70px;line-height:1.7}
-@media(min-width:900px){body{padding:22px;font-size:17px}.group{padding:26px}.group-title{font-size:28px}.leg-teams{font-size:23px}.leg-meta,.leg-market{font-size:17px}.leg-odd{font-size:22px}.match-teams{font-size:24px}.match-league{font-size:17px}.mkt-label{font-size:14px}.mkt-odd{font-size:21px}.mkt-res,.leg-result,.live-badge{font-size:13px}.pill{font-size:15px;padding:11px 16px}}
-@media(max-width:480px){.mkt{grid-template-columns:repeat(2,1fr);gap:8px}.mkt-label{font-size:12px}.mkt-odd{font-size:17px}.group-title{font-size:20px}.match-teams{font-size:17px}}
-</style>
-</head>
-<body id="top">
-<div class="topbar">
-<input id="searchBox" placeholder="Search team or league..." oninput="filterMatches()">
-<select id="marketFilter" onchange="filterMatches()"><option value="">All Markets</option><option value="Over 1.5">Over 1.5</option><option value="Over 2.5">Over 2.5</option><option value="BTTS">BTTS</option><option value="Home Over 1.5">Home Over 1.5</option><option value="Away Over 1.5">Away Over 1.5</option><option value="Home Win/Draw">Home Win/Draw + Over 1.5</option><option value="Away Win/Draw">Away Win/Draw + Over 1.5</option></select>
-</div>
-<div class="league-bar"><select id="leagueFilter" onchange="filterMatches()"><option value="">All Leagues ({{ total }})</option>{% for lg in matches|map(attribute='league')|unique|sort %}<option value="{{ lg }}">{{ lg }}</option>{% endfor %}</select></div>
-<div class="loaded">{{ total }} fixtures loaded successfully.</div><div id="gz-loading" style="color:#e8c87a;font-size:15px;font-weight:700;margin:8px 4px">{% if total == 0 %}No data yet. It will auto-load at 00:05 WAT daily (2 calls).{% endif %}{% if data.quota_exhausted %} API quota 100% - resets midnight. {% endif %}</div>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>GoalsZone24/7</title>
+<style>*{box-sizing:border-box}body{background:#1a1a1a;color:#fff;font-family:Arial,sans-serif;margin:0;padding:12px;overflow-x:hidden}.topbar{display:flex;gap:8px;flex-wrap:wrap}.topbar input,.topbar select{flex:1;min-width:140px;background:#2a2a2a;border:1px solid #3a3a3a;color:#fff;padding:11px 12px;border-radius:10px;font-size:14px}.date-tabs{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}.date-tabs a{padding:9px 14px;border-radius:20px;background:#2a2a2a;color:#fff;text-decoration:none;font-size:13px}.date-tabs a.active{background:#00ff88;color:#000;font-weight:bold}.info{color:#888;font-size:11px;margin:8px 4px}.group{background:#222;border:1px solid #333;border-radius:14px;padding:14px;margin-top:16px}.group-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}.group-title{font-size:19px;font-weight:bold}.target{border:1px solid #00ff88;color:#00ff88;padding:6px 12px;border-radius:20px;font-size:13px;white-space:nowrap;font-weight:bold}.inner{background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:11px;margin-top:10px}.pill{border:none;border-radius:6px;padding:7px 10px;font-size:13px;font-weight:bold}.pill.odds{background:#22c55e;color:#000}.leg{border-top:1px solid #2c2c2c;padding:10px 0}.leg-teams{font-size:14px;font-weight:bold}.leg-meta{color:#999;font-size:11px;margin-top:5px}.leg-line{display:flex;justify-content:space-between;gap:8px;margin-top:5px}.leg-odd{color:#22c55e;font-weight:bold}.match-card{background:#222;border:1px solid #333;border-radius:12px;padding:12px;margin-top:10px}.match-league{font-size:11px;color:#999}.match-teams{font-weight:bold;margin:7px 0;font-size:15px}.match-time{font-size:12px;color:#aaa}.mkt{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.mkt span{background:#2a2a2a;border:1px solid #3a3a3a;padding:6px 9px;border-radius:20px;font-size:11px;font-weight:bold}.mkt b{color:#22c55e}.empty{text-align:center;padding:30px 10px;background:#222;border-radius:12px;color:#aaa;margin-top:10px}.footer{text-align:center;color:#888;font-size:12px;margin:28px 0 60px}</style></head>
+<body>
+<div class="topbar"><input id="searchBox" placeholder="Search team or league..." oninput="filterMatches()"><select id="leagueFilter" onchange="filterMatches()"><option value="">All Leagues ({{ total }})</option>{% for lg in matches|map(attribute='league')|unique|sort %}<option value="{{ lg }}">{{ lg }}</option>{% endfor %}</select></div>
+<div style="color:#aaa;font-size:14px;margin:14px 4px 6px">{{ total }} fixtures loaded successfully.</div>
 <div class="date-tabs"><a href="/?date=yesterday" class="{% if selected_date=='yesterday' %}active{% endif %}">Yesterday</a><a href="/?date=today" class="{% if selected_date=='today' %}active{% endif %}">Today</a><a href="/?date=tomorrow" class="{% if selected_date=='tomorrow' %}active{% endif %}">Tomorrow</a><a href="/?date=next_tomorrow" class="{% if selected_date=='next_tomorrow' %}active{% endif %}">Next</a></div>
-<div class="info">Date: {{ date }} | API Calls: {{ api_calls }} | Key: {{ api_key_set }} | Last Update: {{ last_update }}</div><div style="color:#9aa0aa;font-size:13px;margin:10px 4px">Auto updates once daily at 00:05 WAT. Live scores update automatically.</div>
-{% macro acca_inner(title, acca) %}
-<div class="inner">
-<div class="btn-row"><button class="pill odds">{{ acca.total_odds|default(1.0) }} odds</button><button class="pill img" onclick="shareCard(this)">📷 Img</button><button class="pill grey" onclick="shareCard(this)">Share</button><button class="pill grey" onclick="shareCard(this)">Push 🚀</button><button class="pill outline">{{ acca.overall_status|default('Pending') }}</button></div>
-<div style="font-size:15px;color:#d5d9df;font-weight:700;margin-top:10px;line-height:1.5">{{ title }} &bull; {{ acca.count|default(0) }} Selections &bull; {{ acca.wins|default(0) }} Won &bull; {{ acca.losses|default(0) }} Lost &bull; {{ acca.pending|default(0) }} Pending</div>
-{% if acca.legs %}{% for leg in acca.legs %}
-<div class="leg"><div class="leg-teams"><span class="leg-num">{{ loop.index }}</span>{{ leg.home }} vs {{ leg.away }}<span class="leg-result {{ leg.result|default('PENDING') }}">{{ leg.result|default('PENDING') }}</span>{% if leg.status in ['1H','2H','HT','ET','LIVE','P'] %}<span class="live-badge LIVE">LIVE {{ leg.score_home|default(0) }} - {{ leg.score_away|default(0) }}{% if leg.elapsed %} {{ leg.elapsed }}'{% endif %}</span>{% elif leg.status in ['FT','AET','PEN'] %}<span class="live-badge FT">FT {{ leg.score_home|default(0) }} - {{ leg.score_away|default(0) }}</span>{% elif leg.is_postponed %}<a class="live-badge check-link" href="https://www.sofascore.com/search?q={{ (leg.home ~ ' vs ' ~ leg.away)|urlencode }}" target="_blank" rel="noopener">POSTPONED - CHECK ↗</a>{% else %}<span class="live-badge">KO {{ leg.time }}</span>{% endif %}</div>
-<div class="leg-line"><span class="leg-market">{{ leg.market_label|default(leg.market|default('')) }}</span><span class="leg-odd">@ {{ leg.odd }}</span></div>
-<div class="leg-meta">{{ leg.country|default('') }} {{ leg.league }} | {{ leg.date|default(date) }} | {{ leg.time }} | Score: {{ leg.score_home|default(0) }} - {{ leg.score_away|default(0) }}</div>
-{% if leg.why %}<div class="leg-why">✅ Why this pick? {{ leg.why }} &bull; Strength: {{ leg.smart_score }}</div>{% endif %}</div>
-{% endfor %}{% else %}<div class="empty-leg">Not enough unique matches available.</div>{% endif %}
+<div class="info">Date: {{ date }} | API Calls: {{ api_calls }} | Key: {{ api_key_set }} | Last Update: {{ last_update }}</div>
+
+{% macro show_acca(acca) %}
+{% if acca %}
+<div class="inner"><button class="pill odds">{{ acca.get('total_odd', acca.get('total_odds', 1.0)) }} odds</button> <span style="font-size:12px;color:#999">{{ acca.get('title','') }} • {{ acca.get('legs',[])|length }} Selections • {{ acca.get('status','PENDING') }}</span>
+{% for leg in acca.get('legs',[]) %}<div class="leg"><div class="leg-teams">{{ leg.get('home','') }} vs {{ leg.get('away','') }}</div><div class="leg-line"><span style="color:#aaa;font-size:11px">{{ leg.get('market','') }}</span><span class="leg-odd">@ {{ leg.get('odd','') }}</span></div><div class="leg-meta">{{ leg.get('league','') }} | {{ leg.get('time','') }} | {{ leg.get('tier','') }}</div><div style="font-size:11px;color:#999">{{ leg.get('why','') }}</div></div>{% endfor %}
 </div>
+{% else %}<div class="inner" style="color:#999">Not enough unique matches available.</div>{% endif %}
 {% endmacro %}
+
 {% if total == 0 %}
-<div class="empty">⚽ No fixtures available for this date.<br>No demonstration matches will be displayed.</div>
+<div class="empty">⚽ No fixtures available for this date.</div>
 {% else %}
-<div class="group"><div class="group-head"><div class="group-title">Midnight Accumulator Card <span style="font-size:14px;color:#9aa0aa;font-weight:400">— 00:00 to 03:00 WAT only • Pure Mixed</span></div><div class="target">12.00 Target</div></div>{{ acca_inner('Mixed — Midnight (00:00-03:00)', accas.midnight) }}</div>
-<div class="group"><div class="group-head"><div class="group-title">Early Morning Accumulator Card <span style="font-size:14px;color:#9aa0aa;font-weight:400">— 04:00 to 10:00 WAT only • Pure Mixed</span></div><div class="target">12.00 Target</div></div>{{ acca_inner('Mixed — Early Morning (04:00-10:00)', accas.early) }}</div>
+<div class="group"><div class="group-head"><div class="group-title">Midnight Accumulator</div><div class="target">12.00 Target</div></div>{{ show_acca(accas.get('midnight')) }}</div>
+<div class="group"><div class="group-head"><div class="group-title">Early Morning Accumulator</div><div class="target">12.00 Target</div></div>{{ show_acca(accas.get('early')) }}</div>
 <div class="group"><div class="group-head"><div class="group-title">Banker Accumulators</div><div class="target">2.50+ Target</div></div>
-{{ acca_inner('Over 1.5 — Banker', accas.over15['2.5']) }}
-{{ acca_inner('Over 2.5 — Banker', accas.over25['2.5']) }}
-{{ acca_inner('BTTS — Banker', accas.btts['2.5']) }}
-{{ acca_inner('Home Over 1.5 — Banker', accas.home_over15['2.5']) }}
-{{ acca_inner('Away Over 1.5 — Banker', accas.away_over15['2.5']) }}
-{{ acca_inner('Home Win/Draw + Over 1.5 — Banker', accas.home_1x_over15['2.5']) }}
-{{ acca_inner('Away Win/Draw + Over 1.5 — Banker', accas.away_x2_over15['2.5']) }}
-</div>
-<div class="group"><div class="group-head"><div class="group-title">High Roller Accumulators</div><div class="target">8.00 - 10.00 Target</div></div>
-{{ acca_inner('Over 1.5 — High Roller', accas.over15['8']) }}
-{{ acca_inner('Over 2.5 — High Roller', accas.over25['8']) }}
-{{ acca_inner('BTTS — High Roller', accas.btts['8']) }}
-{{ acca_inner('Home Over 1.5 — High Roller', accas.home_over15['8']) }}
-{{ acca_inner('Away Over 1.5 — High Roller', accas.away_over15['8']) }}
-{{ acca_inner('Home Win/Draw + Over 1.5 — High Roller', accas.home_1x_over15['8']) }}
-{{ acca_inner('Away Win/Draw + Over 1.5 — High Roller', accas.away_x2_over15['8']) }}
-</div>
-<div class="group"><div class="group-head"><div class="group-title">Mega Mixed Accumulator</div><div class="target">55.00+ Target</div></div>
-{{ acca_inner('Mixed Accumulator — 10+ Odds', accas.mix['10']) }}
-{{ acca_inner('Mixed Accumulator — 20+ Odds', accas.mix['20']) }}
-</div>
+{{ show_acca(accas.get('banker_over15')) }}{{ show_acca(accas.get('banker_over25')) }}{{ show_acca(accas.get('banker_btts')) }}{{ show_acca(accas.get('banker_home_over15')) }}{{ show_acca(accas.get('banker_away_over15')) }}{{ show_acca(accas.get('banker_home_1x_over15')) }}{{ show_acca(accas.get('banker_away_x2_over15')) }}</div>
+<div class="group"><div class="group-head"><div class="group-title">High Roller Accumulators</div><div class="target">8.00-10.00 Target</div></div>
+{{ show_acca(accas.get('high_over15')) }}{{ show_acca(accas.get('high_over25')) }}{{ show_acca(accas.get('high_btts')) }}{{ show_acca(accas.get('high_home_over15')) }}{{ show_acca(accas.get('high_away_over15')) }}{{ show_acca(accas.get('high_home_1x_over15')) }}{{ show_acca(accas.get('high_away_x2_over15')) }}</div>
+<div class="group"><div class="group-head"><div class="group-title">Mega Mixed Accumulator</div><div class="target">10+ / 20+ Target</div></div>{{ show_acca(accas.get('mega_10')) }}{{ show_acca(accas.get('mega_20')) }}</div>
 {% endif %}
-<div class="group"><div style="color:#9aa0aa;font-size:14px;margin:-6px 0 10px">LIVE at top &bull; Upcoming in middle &bull; Finished at bottom</div><div class="group-head"><div class="group-title">All Fixtures & Predictions</div><div class="target">{{ total }} Matches</div></div>
+
+<div class="group"><div class="group-head"><div class="group-title">All Fixtures & Predictions</div><div class="target">{{ total }} Matches</div></div>
 <div id="fixturesList">
 {% for match in matches %}
 <div class="match-card" data-search="{{ (match.home ~ ' ' ~ match.away ~ ' ' ~ match.league)|lower }}" data-league="{{ match.league }}">
-<div class="match-head"><div class="match-num">#{{ loop.index }}</div><div class="match-head-main"><div class="match-teams">{{ match.home }} vs {{ match.away }}</div><div class="match-league">{{ match.country|default('') }}: {{ match.league }} &bull; {{ date }}, {{ match.time }} WAT</div></div><div class="match-vs"><div class="vs-badge">VS</div><div class="match-status {% if match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE{% endif %}">{% if match.is_postponed %}<a class="check-link" href="https://www.sofascore.com/search?q={{ (match.home ~ ' vs ' ~ match.away)|urlencode }}" target="_blank" rel="noopener">POSTPONED - CHECK ↗</a>{% elif match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE {{ match.score_home }} - {{ match.score_away }}{% if match.elapsed %} {{ match.elapsed }}'{% endif %}{% elif match.status in ['FT','AET','PEN'] %}FT {{ match.score_home }} - {{ match.score_away }}{% else %}Upcoming{% endif %}</div></div></div>
-<div class="mkt">
-{% for key, label in [('home_1x_over15','1X & O1.5'),('away_x2_over15','X2 & O1.5'),('over15','OVER 1.5'),('over25','OVER 2.5'),('btts','BTTS'),('home_over15','HOME O1.5'),('away_over15','AWAY O1.5')] %}
-{% if match.markets.get(key) %}
-<div class="mkt-box"><div class="mkt-label">{{ label }}</div><div class="mkt-odd">{{ match.markets[key] }}</div>{% if match.is_postponed %}<a class="mkt-res check-link" href="https://www.sofascore.com/search?q={{ (match.home ~ ' vs ' ~ match.away)|urlencode }}" target="_blank" rel="noopener">CHECK ↗</a>{% else %}<div class="mkt-res {% if match.market_results.get(key)=='WIN' %}WIN{% elif match.market_results.get(key)=='LOST' %}LOST{% elif match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE{% else %}PENDING{% endif %}">{% if match.market_results.get(key)=='WIN' %}WIN{% elif match.market_results.get(key)=='LOST' %}LOST{% elif match.status in ['1H','2H','HT','ET','LIVE','P'] %}LIVE{% else %}PENDING{% endif %}</div>{% endif %}</div>
-{% endif %}
-{% endfor %}
-</div>
+<div class="match-league">{{ match.league }} • {{ match.status }}</div>
+<div class="match-teams">{{ match.home }} vs {{ match.away }}</div>
+<div class="match-time">{{ date }} | {{ match.time }}{% if match.status in ['1H','2H','HT','ET'] %} | {{ match.score_home }} - {{ match.score_away }}{% if match.elapsed %} | {{ match.elapsed }}'{% endif %}{% elif match.status in ['FT','AET','PEN'] %} | FT {{ match.score_home }} - {{ match.score_away }}{% endif %}</div>
+<div class="mkt">{% for key, label in [('over15','Over 1.5'),('over25','Over 2.5'),('btts','BTTS'),('home_over15','Home Over 1.5'),('away_over15','Away Over 1.5'),('home_1x_over15','Home Win/Draw + Over 1.5'),('away_x2_over15','Away Win/Draw + Over 1.5')] %}{% if match.markets.get(key) %}<span>{{ label }} <b>@ {{ match.markets[key] }}</b> - {{ match.results.get(key,'PENDING') }}</span>{% endif %}{% endfor %}</div>
 </div>
 {% endfor %}
-{% if total == 0 %}<div class="empty-leg">Not enough unique matches available.</div>{% endif %}
 </div></div>
-<div class="float-btns"><button class="float-btn" onclick="location.reload()" title="Refresh">🔄</button><button class="float-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Top">↑</button><button class="float-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" title="Bottom">↓</button></div>
-<div class="footer" id="bottom">GoalsZone24/7 • Cloud Hosted Engine<br>Last Update: {{ last_update }}<br>Predictions depend on available API bookmaker data.</div>
-<script>
-function filterMatches(){var q=(document.getElementById('searchBox').value||'').toLowerCase();var lg=document.getElementById('leagueFilter').value;document.querySelectorAll('.match-card').forEach(function(c){var ok=true;if(q && !c.dataset.search.includes(q)) ok=false;if(lg && c.dataset.league!==lg) ok=false;c.style.display=ok?'':'none';});}
-function shareCard(btn){var card=btn.closest('.inner');var text=card?card.innerText:'GoalsZone24/7';if(navigator.share){navigator.share({title:'GoalsZone24/7',text:text}).catch(function(){});}else if(navigator.clipboard){navigator.clipboard.writeText(text);alert('Copied!');}else{alert(text);}}
-</script>
-</body>
-</html>
+<div class="footer">GoalsZone24/7 • Last Update: {{ last_update }}</div>
+<script>function filterMatches(){var q=(document.getElementById('searchBox').value||'').toLowerCase();var lg=document.getElementById('leagueFilter').value;document.querySelectorAll('.match-card').forEach(function(c){var ok=true;if(q&&!c.dataset.search.includes(q))ok=false;if(lg&&c.dataset.league!==lg)ok=false;c.style.display=ok?'':'none';});}</script>
+</body></html>
