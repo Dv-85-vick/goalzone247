@@ -17,42 +17,8 @@ EST = {"over15": 1.25, "over25": 1.50, "btts": 1.65, "home_over15": 1.60, "away_
 MARKETS = list(EST.keys())
 
 # ===== MAJOR + HIGH-GOAL LEAGUES - FOCUS HERE =====
-# API-Football League IDs
-MAJOR_LEAGUES = {
-    39,   # England - Premier League
-    140,  # Spain - La Liga
-    135,  # Italy - Serie A
-    78,   # Germany - Bundesliga
-    61,   # France - Ligue 1
-    40,   # England - Championship
-    94,   # Portugal - Primeira Liga
-    88,   # Netherlands - Eredivisie
-    144,  # Belgium - Pro League
-    203,  # Turkey - Super Lig
-    71,   # Brazil - Serie A
-    253,  # USA - MLS
-    262,  # Mexico - Liga MX
-}
-HIGH_GOAL_LEAGUES = {
-    88,   # Netherlands Eredivisie - highest goals
-    78,   # Germany Bundesliga - high goals
-    144,  # Belgium Pro League - high goals
-    218,  # Austria Bundesliga - high goals
-    207,  # Switzerland Super League - high goals
-    179,  # Scotland Premiership - high goals
-    119,  # Denmark Superliga
-    113,  # Sweden Allsvenskan
-    103,  # Norway Eliteserien
-    203,  # Turkey Super Lig
-    253,  # MLS
-    71,   # Brazil Serie A
-    128,  # Argentina Primera
-    262,  # Mexico Liga MX
-    135,  # Serie A - now high goals
-    140,  # La Liga
-    39,   # Premier League
-}
-# All leagues we focus on = Major + High Goal combined
+MAJOR_LEAGUES = {39,140,135,78,61,40,94,88,144,203,71,253,262}
+HIGH_GOAL_LEAGUES = {88,78,144,218,207,179,119,113,103,203,253,71,128,262,135,140,39}
 FOCUS_LEAGUES = MAJOR_LEAGUES | HIGH_GOAL_LEAGUES
 
 LOCK = threading.Lock()
@@ -75,13 +41,12 @@ def api_get(endpoint, params):
     if not API_KEY:
         return []
     if not can_call():
-        print(f"CAP REACHED {CACHE['api_calls_today']}/{DAILY_CAP}")
         return []
     try:
         p = dict(params); p["timezone"] = "Africa/Lagos"
         r = requests.get(f"{BASE}/{endpoint}", headers=HEADERS, params=p, timeout=20)
         CACHE["api_calls_today"] += 1
-        print(f"API {endpoint} {p} -> {r.status_code} | total {CACHE['api_calls_today']}")
+        print(f"API {endpoint} -> {r.status_code} | total {CACHE['api_calls_today']}")
         if r.status_code == 200:
             return r.json().get("response", [])
         return []
@@ -95,22 +60,10 @@ def calc_results(gh, ga, status):
     def win(cond):
         if cond: return "WIN"
         return "LOST" if finished else "PENDING"
-    return {
-        "over15": win(total >= 2),
-        "over25": win(total >= 3),
-        "btts": win(gh > 0 and ga > 0),
-        "home_over15": win(gh >= 2),
-        "away_over15": win(ga >= 2),
-        "home_1x_over15": win(gh >= ga and total >= 2),
-        "away_x2_over15": win(ga >= gh and total >= 2),
-    }
+    return {"over15": win(total >= 2), "over25": win(total >= 3), "btts": win(gh > 0 and ga > 0), "home_over15": win(gh >= 2), "away_over15": win(ga >= 2), "home_1x_over15": win(gh >= ga and total >= 2), "away_x2_over15": win(ga >= gh and total >= 2)}
 
-def league_rank(league_id):
-    # 0 = Major + High Goal (show FIRST, use for accumulators)
-    # 1 = Other leagues (show AFTER)
-    if league_id in FOCUS_LEAGUES:
-        return 0
-    return 1
+def league_rank(lid):
+    return 0 if lid in FOCUS_LEAGUES else 1
 
 def build_day(date_str):
     fixtures = api_get("fixtures", {"date": date_str})
@@ -121,27 +74,17 @@ def build_day(date_str):
             gh = gl.get("home") if gl.get("home") is not None else 0
             ga = gl.get("away") if gl.get("away") is not None else 0
             status = st.get("short", "NS")
-            disp_status = status
+            disp = status
             try:
                 ko = datetime.fromisoformat(fx["date"].replace("Z", "+00:00"))
                 if status == "NS" and (datetime.now(WAT) - ko.astimezone(WAT)).total_seconds() > 9000:
-                    disp_status = "POSTPONED-CHECK"
+                    disp = "POSTPONED-CHECK"
             except Exception:
                 pass
             lid = lg.get("id", 0)
-            matches.append({
-                "fixture_id": fx["id"],
-                "league": lg["name"], "league_id": lid,
-                "home": tm["home"]["name"], "away": tm["away"]["name"],
-                "time": fx["date"][11:16], "status": disp_status, "real_status": status,
-                "score_home": gh, "score_away": ga, "elapsed": st.get("elapsed") or 0,
-                "markets": dict(EST), "results": calc_results(gh, ga, status),
-                "league_rank": league_rank(lid),
-                "is_focus": 1 if lid in FOCUS_LEAGUES else 0,
-            })
+            matches.append({"fixture_id": fx["id"], "league": lg["name"], "league_id": lid, "home": tm["home"]["name"], "away": tm["away"]["name"], "time": fx["date"][11:16], "status": disp, "real_status": status, "score_home": gh, "score_away": ga, "elapsed": st.get("elapsed") or 0, "markets": dict(EST), "results": calc_results(gh, ga, status), "league_rank": league_rank(lid)})
         except Exception:
             continue
-    # ORDER: LIVE first, then FOCUS leagues first, then time. Finished at bottom.
     def rank(m):
         if m["status"] in ("1H", "2H", "HT", "ET", "P"): return 0
         if m["status"] in ("NS", "POSTPONED-CHECK"): return 1
@@ -154,7 +97,6 @@ def pick_leg(m, market, tier):
 
 def build_accas(matches, date_str):
     pool_all = [m for m in matches if m["real_status"] == "NS"]
-    # FOCUS FIRST: accumulators use Major + High-Goal leagues first, others only to fill
     pool_focus = [m for m in pool_all if m["league_rank"] == 0]
     pool = pool_focus if len(pool_focus) >= 6 else pool_all
     if len(pool) < 3:
@@ -167,51 +109,30 @@ def build_accas(matches, date_str):
     accas = {}
     mid = [m for m in pool if "00:" <= m["time"] <= "03:59"]
     if len(mid) >= 3:
-        legs = [pick_leg(mid[i], MARKETS[i % len(MARKETS)], "STRONG" if i < 2 else "GOOD") for i in range(min(6, len(mid)))]
-        accas["midnight"] = make_card("Midnight Pure Mixed - 12.00", 12.00, legs)
+        accas["midnight"] = make_card("Midnight Pure Mixed - 12.00", 12.00, [pick_leg(mid[i], MARKETS[i % len(MARKETS)], "STRONG" if i < 2 else "GOOD") for i in range(min(6, len(mid)))])
     early = [m for m in pool if "04:00" <= m["time"] <= "10:00"]
     if len(early) >= 3:
-        legs = [pick_leg(early[i], MARKETS[i % len(MARKETS)], "STRONG" if i < 2 else "GOOD") for i in range(min(6, len(early)))]
-        accas["early"] = make_card("Early Morning Pure Mixed - 12.00", 12.00, legs)
+        accas["early"] = make_card("Early Morning Pure Mixed - 12.00", 12.00, [pick_leg(early[i], MARKETS[i % len(MARKETS)], "STRONG" if i < 2 else "GOOD") for i in range(min(6, len(early)))])
     for idx, mk in enumerate(MARKETS):
         cands = pool[idx::7][:3]
         if len(cands) >= 2:
-            legs = [pick_leg(m, mk, "STRONG") for m in cands]
-            accas[f"banker_{mk}"] = make_card(f"Banker - {mk} - 2.50+", 2.50, legs)
+            accas[f"banker_{mk}"] = make_card(f"Banker - {mk} - 2.50+", 2.50, [pick_leg(m, mk, "STRONG") for m in cands])
     for idx, mk in enumerate(MARKETS):
         cands = pool[(idx+2)::7][:5]
         if len(cands) >= 4:
-            legs = [pick_leg(m, mk, "STRONG" if i < 2 else "GOOD") for i, m in enumerate(cands)]
-            accas[f"high_{mk}"] = make_card(f"High Roller - {mk} - 8.00-10.00", 9.00, legs)
+            accas[f"high_{mk}"] = make_card(f"High Roller - {mk} - 8.00-10.00", 9.00, [pick_leg(m, mk, "STRONG" if i < 2 else "GOOD") for i, m in enumerate(cands)])
     if len(pool) >= 8:
-        legs = [pick_leg(pool[i], MARKETS[i % len(MARKETS)], "STRONG" if i < 3 else "GOOD") for i in range(8)]
-        accas["mega_10"] = make_card("Mega Mixed - 10+", 10.00, legs)
-        legs2 = [pick_leg(pool[i], MARKETS[(i+2) % len(MARKETS)], "STRONG" if i < 3 else "FILL") for i in range(min(10, len(pool)))]
-        accas["mega_20"] = make_card("Mega Mixed - 20+", 20.00, legs2)
+        accas["mega_10"] = make_card("Mega Mixed - 10+", 10.00, [pick_leg(pool[i], MARKETS[i % len(MARKETS)], "STRONG" if i < 3 else "GOOD") for i in range(8)])
+        accas["mega_20"] = make_card("Mega Mixed - 20+", 20.00, [pick_leg(pool[i], MARKETS[(i+2) % len(MARKETS)], "STRONG" if i < 3 else "FILL") for i in range(min(10, len(pool)))])
     return accas
 
 def build_all():
     now = datetime.now(WAT)
-    today = now.strftime("%Y-%m-%d")
-    tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
-    yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-    nxt = (now + timedelta(days=2)).strftime("%Y-%m-%d")
-    reset_counter()
-    before = CACHE["api_calls_today"]
-    tm = build_day(today)
-    tom = build_day(tomorrow)
-    data = {
-        "dates": {
-            "yesterday": {"date": yesterday, "matches": [], "accumulators": {}},
-            "today": {"date": today, "matches": tm, "accumulators": build_accas(tm, today)},
-            "tomorrow": {"date": tomorrow, "matches": tom, "accumulators": build_accas(tom, tomorrow)},
-            "next_tomorrow": {"date": nxt, "matches": [], "accumulators": {}},
-        },
-        "current_date": today, "last_update": datetime.now(WAT).isoformat(),
-        "api_calls_today": CACHE["api_calls_today"],
-    }
-    print(f"REFRESH DONE: used {CACHE['api_calls_today']-before} calls, total {CACHE['api_calls_today']}")
-    return data
+    today = now.strftime("%Y-%m-%d"); tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+    yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d"); nxt = (now + timedelta(days=2)).strftime("%Y-%m-%d")
+    reset_counter(); before = CACHE["api_calls_today"]
+    tm = build_day(today); tom = build_day(tomorrow)
+    return {"dates": {"yesterday": {"date": yesterday, "matches": [], "accumulators": {}}, "today": {"date": today, "matches": tm, "accumulators": build_accas(tm, today)}, "tomorrow": {"date": tomorrow, "matches": tom, "accumulators": build_accas(tom, tomorrow)}, "next_tomorrow": {"date": nxt, "matches": [], "accumulators": {}}}, "current_date": today, "last_update": datetime.now(WAT).isoformat(), "api_calls_today": CACHE["api_calls_today"]}
 
 def empty_data():
     now = datetime.now(WAT)
@@ -226,6 +147,7 @@ def index():
     sd = data["dates"].get(sel) or data["dates"]["today"]
     return render_template("index.html", data=data, selected_date=sel, dates=data["dates"], matches=sd["matches"], accas=sd["accumulators"], date=sd["date"], total=len(sd["matches"]), api_calls=CACHE["api_calls_today"], last_update=data["last_update"], api_key_set=bool(API_KEY))
 
+# ===== ADMIN - THIS IS WHAT YOU ASKED FOR =====
 @app.route("/admin")
 def admin():
     data = CACHE.get("data") or empty_data()
@@ -239,9 +161,8 @@ def refresh():
     if not can_call():
         return jsonify({"status": "cap_reached", "message": f"Daily cap {DAILY_CAP} reached.", "api_calls_today": CACHE["api_calls_today"]}), 429
     with LOCK:
-        data = build_all()
-        CACHE["data"] = data
-        return jsonify({"status": "ok", "message": f"Refreshed! Today {len(data['dates']['today']['matches'])} + Tomorrow {len(data['dates']['tomorrow']['matches'])} matches. Focus leagues first.", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "api_calls_today": data["api_calls_today"], "last_update": data["last_update"]})
+        data = build_all(); CACHE["data"] = data
+        return jsonify({"status": "ok", "message": f"Refreshed! Today {len(data['dates']['today']['matches'])} + Tomorrow {len(data['dates']['tomorrow']['matches'])} matches.", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "api_calls_today": data["api_calls_today"], "last_update": data["last_update"]})
 
 @app.route("/api/live")
 def live():
