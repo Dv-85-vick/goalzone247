@@ -242,6 +242,14 @@ def refresh_live_scores_only():
         CACHE["data"]["dates"]["today"]["accumulators"] = generate_accumulators(today_matches, CACHE["data"]["current_date"]); return CACHE["data"]
 @app.route("/")
 def index():
+    # v18 AUTO-FETCH NOW: If cache is empty (first open after deploy), fetch once automatically.
+    # After that, use 2h cache lock - visitors cannot trigger fetch again.
+    if CACHE.get("data") is None:
+        try:
+            print("AUTO-FETCH NOW: cache empty, fetching Today + Tomorrow (2 calls)...")
+            get_data()
+        except Exception as e:
+            print(f"AUTO-FETCH failed: {e}")
     if CACHE.get("data") is not None:
         data = CACHE["data"]; selected_date = request.args.get("date", "today"); selected_data = data["dates"].get(selected_date) or data["dates"].get("today")
         def _rank(m):
@@ -257,6 +265,14 @@ def index():
     return render_template("index.html", data=data, selected_date=selected_date, dates=data["dates"], matches=[], accas={}, date=selected_data["date"], total=0, api_calls=CACHE.get("api_calls_today", 0), last_update=data["last_update"], api_key_set=bool(API_KEY), cache_until=data.get("cache_until"))
 @app.route("/api/data")
 def api_data():
+    # v18 AUTO-FETCH NOW: If cache is empty, allow ONE auto fetch without password (first load only).
+    # If cache already has data, visitors still cannot refresh - admin only.
+    if CACHE.get("data") is None and request.args.get("go") != "1":
+        try:
+            data = get_data()
+            return jsonify({"status": "ok", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "last_update": data["last_update"], "api_calls_today": data["api_calls_today"]})
+        except Exception as e:
+            return jsonify({"status": "loading", "message": str(e)}), 202
     if request.args.get("go") != "1": return jsonify({"status": "loading", "message": "Auto runs once daily at 00:05 WAT. Admin only: use /admin to refresh."}), 202
     if request.args.get("key") != ADMIN_PASSWORD: return jsonify({"status": "forbidden", "message": "Admin only. Visitors cannot refresh."}), 403
     try: data = get_data()
