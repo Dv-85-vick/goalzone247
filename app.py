@@ -12,14 +12,6 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "goalszone247")
 BASE = "https://v3.football.api-sports.io"
 HEADERS = {"x-apisports-key": API_KEY} if API_KEY else {}
 WAT = ZoneInfo("Africa/Lagos")
-
-# VICTOR'S RULES - DO NOT CHANGE WITHOUT HIS PERMISSION
-# 1. Odds ONLY Today + Tomorrow. NEVER Yesterday / Next.
-# 2. Fixtures ONLY Today + Tomorrow. Yesterday / Next = empty, 0 calls.
-# 3. Cache / Lock = 2 HOURS (7200s). One refresh blocks everyone else.
-# 4. Live scores: separate small check, Today only, every 5 min, NO odds.
-# 5. Daily cap: stop API calls after cap, serve cached data.
-# 6. COMBO MARKETS: home_1x_over15 (1X + Over 1.5) and away_x2_over15 (X2 + Over 1.5). Real combo if available else estimated. Never multiply 1X x Over1.5.
 CACHE_SECONDS = 7200
 LIVE_CHECK_SECONDS = 300
 DAILY_CALL_CAP = 20
@@ -74,22 +66,19 @@ def _can_call_api():
     if CACHE.get("quota_exhausted"): return False
     return CACHE.get("api_calls_today", 0) < DAILY_CALL_CAP
 def api_get(endpoint, params, with_timezone=True):
-    if not API_KEY:
-        print("API_FOOTBALL_KEY is missing."); return []
-    if not _can_call_api():
-        print(f"DAILY CAP REACHED: {CACHE['api_calls_today']}/{DAILY_CALL_CAP}"); return []
+    if not API_KEY: return []
+    if not _can_call_api(): return []
     try:
         p = dict(params)
         if with_timezone and "timezone" not in p: p["timezone"] = "Africa/Lagos"
         response = requests.get(f"{BASE}/{endpoint}", headers=HEADERS, params=p, timeout=6)
         CACHE["api_calls_today"] = CACHE.get("api_calls_today", 0) + 1
-        print(f"API {endpoint} params={p} -> status={response.status_code} | calls_today={CACHE['api_calls_today']}/{DAILY_CALL_CAP}")
         if response.status_code in (403, 429):
             CACHE["quota_exhausted"] = True; CACHE["last_error"] = f"API quota finished ({response.status_code}). Resets midnight."; return []
         if response.status_code == 200:
             body = response.json()
             if body.get("errors"): CACHE["last_error"] = str(body.get("errors"))
-            results = body.get("response", []); print(f"API {endpoint} returned {len(results)} items"); return results
+            return body.get("response", [])
         CACHE["last_error"] = f"{endpoint} {response.status_code}: {response.text[:300]}"; return []
     except Exception as e:
         CACHE["last_error"] = str(e); return []
@@ -135,8 +124,7 @@ def _build_day(date_string, with_odds):
         try:
             fid = fixture["fixture"]["id"]
             markets = parse_odds(odds_map.get(fid)) if with_odds else {}
-            is_estimated = False
-            if not markets: markets = dict(ESTIMATED_MARKETS); is_estimated = True
+            if not markets: markets = dict(ESTIMATED_MARKETS)
             over15 = markets.get("over15"); score_rank = (10 - (over15 - 1.0) * 2 if over15 else 0)
             fd = fixture["fixture"].get("date", ""); sd = fixture["fixture"].get("status", {}); goals = fixture.get("goals", {})
             _st = sd.get("short", "NS"); _sh = goals.get("home") or 0; _sa = goals.get("away") or 0
@@ -145,10 +133,9 @@ def _build_day(date_string, with_odds):
                 _ko = datetime.fromisoformat(fd.replace("Z", "+00:00")).astimezone(WAT)
                 if _st == "NS" and (datetime.now(WAT) - _ko).total_seconds() > 2.5*3600: _is_postponed = True
             except Exception: pass
-            matches.append({"fixture_id": fid, "league": fixture["league"]["name"], "league_id": fixture["league"].get("id"), "country": fixture["league"].get("country", ""), "date": date_string, "home": fixture["teams"]["home"]["name"], "away": fixture["teams"]["away"]["name"], "time": fd[11:16] if len(fd) >= 16 else "", "status": _st, "score_home": _sh, "score_away": _sa, "elapsed": sd.get("elapsed") or 0, "is_postponed": _is_postponed, "display_status": ("POSTPONED" if _is_postponed else _st), "markets": markets, "market_results": {k: market_result(k, _st, _sh, _sa) for k in markets}, "market_labels": MARKET_LABELS, "odds_estimated": is_estimated, "score_rank": score_rank})
+            matches.append({"fixture_id": fid, "league": fixture["league"]["name"], "league_id": fixture["league"].get("id"), "country": fixture["league"].get("country", ""), "date": date_string, "home": fixture["teams"]["home"]["name"], "away": fixture["teams"]["away"]["name"], "time": fd[11:16] if len(fd) >= 16 else "", "status": _st, "score_home": _sh, "score_away": _sa, "elapsed": sd.get("elapsed") or 0, "is_postponed": _is_postponed, "display_status": ("POSTPONED" if _is_postponed else _st), "markets": markets, "market_results": {k: market_result(k, _st, _sh, _sa) for k in markets}, "market_labels": MARKET_LABELS, "odds_estimated": False, "score_rank": score_rank})
         except (KeyError, TypeError, ValueError): continue
     matches.sort(key=lambda m: m["score_rank"], reverse=True)
-    print(f"{date_string}: fixtures={len(fixtures)} matches={len(matches)} odds_called={with_odds}")
     return matches
 def generate_accumulators(matches, date_string=""):
     def _leg(m, mk): return {"fixture_id": m["fixture_id"], "home": m["home"], "away": m["away"], "league": m["league"], "country": m.get("country", ""), "date": m.get("date", date_string), "time": m["time"], "score_home": m.get("score_home", 0), "score_away": m.get("score_away", 0), "status": m.get("status", "NS"), "is_postponed": m.get("is_postponed", False), "display_status": m.get("display_status", m.get("status", "NS")), "elapsed": m.get("elapsed", 0), "market": mk, "market_label": MARKET_LABELS.get(mk, mk), "odd": m["markets"].get(mk), "result": market_result(mk, m.get("status", "NS"), m.get("score_home", 0), m.get("score_away", 0)), "why": why_pick(m, mk) + f" - Tier: {tier_of(m, mk)}", "smart_score": round(smart_score(m, mk), 1)}
@@ -207,7 +194,7 @@ def build_all():
     _reset_daily_counter_if_needed(); before = CACHE.get("api_calls_today", 0)
     today_matches = _build_day(today, with_odds=False); tomorrow_matches = _build_day(tomorrow, with_odds=False)
     dates = {"yesterday": {"date": yesterday, "matches": [], "accumulators": {}}, "today": {"date": today, "matches": today_matches, "accumulators": generate_accumulators(today_matches, today)}, "tomorrow": {"date": tomorrow, "matches": tomorrow_matches, "accumulators": generate_accumulators(tomorrow_matches, tomorrow)}, "next_tomorrow": {"date": next_day, "matches": [], "accumulators": {}},}
-    after = CACHE.get("api_calls_today", 0); print(f"FULL REFRESH DONE: used {after-before} API calls this refresh, total today {after}/{DAILY_CALL_CAP}")
+    after = CACHE.get("api_calls_today", 0)
     return {"dates": dates, "current_date": today, "last_update": datetime.now(WAT).isoformat(), "api_calls_today": after, "last_error": CACHE.get("last_error"), "quota_exhausted": CACHE.get("quota_exhausted", False), "cache_until": (datetime.now(WAT) + timedelta(seconds=CACHE_SECONDS)).isoformat()}
 def refresh_cache_locked():
     data = build_all(); CACHE["data"] = data; CACHE["last_fetch"] = time.monotonic(); return data
@@ -219,7 +206,7 @@ def get_data():
         now = time.monotonic()
         if CACHE["data"] is not None and now - CACHE["last_fetch"] < CACHE_SECONDS: return CACHE["data"]
         try: return refresh_cache_locked()
-        except Exception as e: print(f"FAST FALLBACK: build failed {e}"); CACHE["last_error"] = str(e); return _empty_data()
+        except Exception as e: CACHE["last_error"] = str(e); return _empty_data()
 def refresh_live_scores_only():
     with DATA_LOCK:
         if CACHE["data"] is None: return get_data()
@@ -227,8 +214,8 @@ def refresh_live_scores_only():
         if now - CACHE.get("last_live_check", 0) < LIVE_CHECK_SECONDS: return CACHE["data"]
         today_matches = CACHE["data"]["dates"]["today"]["matches"]
         has_live = any(m["status"] in ("1H", "2H", "HT", "ET", "P", "LIVE") for m in today_matches)
-        if not has_live: print("LIVE CHECK: no live matches, skipping API call."); CACHE["last_live_check"] = now; return CACHE["data"]
-        print("LIVE CHECK: live matches found, fetching Today fixtures only (1 call, no odds)..."); CACHE["last_live_check"] = now
+        if not has_live: CACHE["last_live_check"] = now; return CACHE["data"]
+        CACHE["last_live_check"] = now
         fixtures = api_get("fixtures", {"date": CACHE["data"]["current_date"], "live": "all"}, with_timezone=True)
         if not fixtures: return CACHE["data"]
         live_map = {}
@@ -242,14 +229,7 @@ def refresh_live_scores_only():
         CACHE["data"]["dates"]["today"]["accumulators"] = generate_accumulators(today_matches, CACHE["data"]["current_date"]); return CACHE["data"]
 @app.route("/")
 def index():
-    # v18 AUTO-FETCH NOW: If cache is empty (first open after deploy), fetch once automatically.
-    # After that, use 2h cache lock - visitors cannot trigger fetch again.
-    if CACHE.get("data") is None:
-        try:
-            print("AUTO-FETCH NOW: cache empty, fetching Today + Tomorrow (2 calls)...")
-            get_data()
-        except Exception as e:
-            print(f"AUTO-FETCH failed: {e}")
+    # v19 INSTANT OPEN - NEVER fetch on homepage. This fixes the hang. Fetch only via /admin or /api/cron.
     if CACHE.get("data") is not None:
         data = CACHE["data"]; selected_date = request.args.get("date", "today"); selected_data = data["dates"].get(selected_date) or data["dates"].get("today")
         def _rank(m):
@@ -265,14 +245,6 @@ def index():
     return render_template("index.html", data=data, selected_date=selected_date, dates=data["dates"], matches=[], accas={}, date=selected_data["date"], total=0, api_calls=CACHE.get("api_calls_today", 0), last_update=data["last_update"], api_key_set=bool(API_KEY), cache_until=data.get("cache_until"))
 @app.route("/api/data")
 def api_data():
-    # v18 AUTO-FETCH NOW: If cache is empty, allow ONE auto fetch without password (first load only).
-    # If cache already has data, visitors still cannot refresh - admin only.
-    if CACHE.get("data") is None and request.args.get("go") != "1":
-        try:
-            data = get_data()
-            return jsonify({"status": "ok", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "last_update": data["last_update"], "api_calls_today": data["api_calls_today"]})
-        except Exception as e:
-            return jsonify({"status": "loading", "message": str(e)}), 202
     if request.args.get("go") != "1": return jsonify({"status": "loading", "message": "Auto runs once daily at 00:05 WAT. Admin only: use /admin to refresh."}), 202
     if request.args.get("key") != ADMIN_PASSWORD: return jsonify({"status": "forbidden", "message": "Admin only. Visitors cannot refresh."}), 403
     try: data = get_data()
@@ -284,19 +256,19 @@ def refresh():
     with DATA_LOCK:
         now = time.monotonic()
         if CACHE["data"] is not None and now - CACHE["last_fetch"] < CACHE_SECONDS:
-            remaining = int(CACHE_SECONDS - (now - CACHE["last_fetch"])); return jsonify({"status": "locked", "message": f"Already refreshed. Next refresh in {remaining//60} minutes. Everyone sees the same data.", "retry_after_seconds": remaining, "cache_until": CACHE["data"].get("cache_until")}), 429
-        if not _can_call_api(): return jsonify({"status": "cap_reached", "message": f"Daily cap {DAILY_CALL_CAP} reached. Showing last saved data.", "api_calls_today": CACHE.get("api_calls_today", 0)}), 429
-        data = refresh_cache_locked(); CACHE["last_manual_refresh"] = time.monotonic(); return jsonify({"status": "ok", "message": "Data refreshed successfully.", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "last_update": data["last_update"], "api_calls_today": data["api_calls_today"]})
+            remaining = int(CACHE_SECONDS - (now - CACHE["last_fetch"])); return jsonify({"status": "locked", "message": f"Already refreshed. Next refresh in {remaining//60} minutes.", "retry_after_seconds": remaining, "cache_until": CACHE["data"].get("cache_until")}), 429
+        if not _can_call_api(): return jsonify({"status": "cap_reached", "message": f"Daily cap {DAILY_CALL_CAP} reached.", "api_calls_today": CACHE.get("api_calls_today", 0)}), 429
+        data = refresh_cache_locked(); CACHE["last_manual_refresh"] = time.monotonic(); return jsonify({"status": "ok", "message": "Data refreshed.", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "last_update": data["last_update"], "api_calls_today": data["api_calls_today"]})
 @app.route("/api/live")
 def live():
-    if request.args.get("key") != ADMIN_PASSWORD: return jsonify({"status": "forbidden", "message": "Admin only. Visitors cannot trigger live update."}), 403
+    if request.args.get("key") != ADMIN_PASSWORD: return jsonify({"status": "forbidden", "message": "Admin only."}), 403
     data = refresh_live_scores_only(); return jsonify(data)
 @app.route("/api/cron")
 def cron_daily():
     today = _today_str()
     if CACHE.get("last_auto_date") == today: return jsonify({"status": "already_done", "message": f"Auto refresh already done today {today}. 0 API calls."}), 200
-    if CACHE.get("quota_exhausted"): return jsonify({"status": "quota_exhausted", "message": "API quota finished. Waiting for midnight reset. 0 API calls."}), 200
-    if not _can_call_api(): return jsonify({"status": "cap_reached", "message": "Daily cap reached. 0 API calls."}), 200
+    if CACHE.get("quota_exhausted"): return jsonify({"status": "quota_exhausted", "message": "API quota finished."}), 200
+    if not _can_call_api(): return jsonify({"status": "cap_reached", "message": "Daily cap reached."}), 200
     try:
         data = refresh_cache_locked(); CACHE["last_auto_date"] = today; return jsonify({"status": "ok", "message": f"Auto refresh done for {today}.", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "api_calls_today": data["api_calls_today"]})
     except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
@@ -305,6 +277,6 @@ def admin():
     data = CACHE.get("data") or _empty_data(); return render_template("admin.html", data=data, api_calls=data.get("api_calls_today", 0), last_update=data.get("last_update"), quota_exhausted=data.get("quota_exhausted", False))
 @app.route("/api/debug")
 def debug():
-    data = CACHE.get("data") or _empty_data(); return jsonify({"api_key_set": bool(API_KEY), "last_error": CACHE.get("last_error"), "last_update": data.get("last_update"), "cache_until": data.get("cache_until"), "api_calls_today": CACHE.get("api_calls_today", 0), "daily_cap": DAILY_CALL_CAP, "counts": {k: len(v["matches"]) for k, v in data["dates"].items()}, "rules": "Odds: Today+Tomorrow only. Cache: 2h lock. Live: Today only, 5 min, no odds. Combos: 1X+Over1.5, X2+Over1.5."})
+    data = CACHE.get("data") or _empty_data(); return jsonify({"api_key_set": bool(API_KEY), "last_error": CACHE.get("last_error"), "last_update": data.get("last_update"), "cache_until": data.get("cache_until"), "api_calls_today": CACHE.get("api_calls_today", 0), "daily_cap": DAILY_CALL_CAP, "counts": {k: len(v["matches"]) for k, v in data["dates"].items()}, "rules": "Odds: Today+Tomorrow only. Cache: 2h lock."})
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000)); app.run(host="0.0.0.0", port=port)
