@@ -9,17 +9,32 @@ BASE = "https://v3.football.api-sports.io"
 HEADERS = {"x-apisports-key": API_KEY} if API_KEY else {}
 WAT = ZoneInfo("Africa/Lagos")
 
-# ===== VICTOR'S FINAL RULES =====
+# ===== VICTOR'S FINAL RULES - NO ADMIN VERSION =====
 # Today + Tomorrow ONLY. Never Yesterday / Next.
-# Fetch anytime, NO lock. Cap 60/day. Full refresh = 2 calls. Live = 1 call. No odds endpoint.
+# No admin, no password. Site works by itself.
+# Cap 60/day. Full refresh = 2 calls. Live = 1 call. No odds endpoint.
+# Friendlies REMOVED - only real leagues.
 DAILY_CAP = 60
 EST = {"over15": 1.25, "over25": 1.50, "btts": 1.65, "home_over15": 1.60, "away_over15": 1.60, "home_1x_over15": 1.45, "away_x2_over15": 1.50}
 MARKETS = list(EST.keys())
 
-# ===== MAJOR + HIGH-GOAL LEAGUES - FOCUS HERE =====
+# Major + High-Goal Leagues - Focus
 MAJOR_LEAGUES = {39,140,135,78,61,40,94,88,144,203,71,253,262}
 HIGH_GOAL_LEAGUES = {88,78,144,218,207,179,119,113,103,203,253,71,128,262,135,140,39}
 FOCUS_LEAGUES = MAJOR_LEAGUES | HIGH_GOAL_LEAGUES
+
+# Friendlies + Youth - REMOVE THESE, never show
+BLOCKED_LEAGUES = {
+    667, # World Friendlies
+    668, # Club Friendlies
+    669, # Club Friendlies Women
+    670, # Friendlies Women
+    671, # U21 Friendlies
+    672, # U20 Friendlies
+    673, # U19 Friendlies
+    674, # U18 Friendlies
+    675, # U17 Friendlies
+}
 
 LOCK = threading.Lock()
 CACHE = {"data": None, "api_calls_today": 0, "api_calls_date": None, "last_live": 0.0}
@@ -46,12 +61,10 @@ def api_get(endpoint, params):
         p = dict(params); p["timezone"] = "Africa/Lagos"
         r = requests.get(f"{BASE}/{endpoint}", headers=HEADERS, params=p, timeout=20)
         CACHE["api_calls_today"] += 1
-        print(f"API {endpoint} -> {r.status_code} | total {CACHE['api_calls_today']}")
         if r.status_code == 200:
             return r.json().get("response", [])
         return []
-    except Exception as e:
-        print(f"API error {e}")
+    except Exception:
         return []
 
 def calc_results(gh, ga, status):
@@ -71,6 +84,13 @@ def build_day(date_str):
     for f in fixtures:
         try:
             fx = f["fixture"]; lg = f["league"]; tm = f["teams"]; gl = f.get("goals", {}); st = fx.get("status", {})
+            lid = lg.get("id", 0)
+            # REMOVE FRIENDLIES + YOUTH - skip them completely
+            if lid in BLOCKED_LEAGUES:
+                continue
+            lname = lg.get("name", "").lower()
+            if "friendly" in lname or "friendlies" in lname:
+                continue
             gh = gl.get("home") if gl.get("home") is not None else 0
             ga = gl.get("away") if gl.get("away") is not None else 0
             status = st.get("short", "NS")
@@ -81,7 +101,6 @@ def build_day(date_str):
                     disp = "POSTPONED-CHECK"
             except Exception:
                 pass
-            lid = lg.get("id", 0)
             matches.append({"fixture_id": fx["id"], "league": lg["name"], "league_id": lid, "home": tm["home"]["name"], "away": tm["away"]["name"], "time": fx["date"][11:16], "status": disp, "real_status": status, "score_home": gh, "score_away": ga, "elapsed": st.get("elapsed") or 0, "markets": dict(EST), "results": calc_results(gh, ga, status), "league_rank": league_rank(lid)})
         except Exception:
             continue
@@ -130,7 +149,7 @@ def build_all():
     now = datetime.now(WAT)
     today = now.strftime("%Y-%m-%d"); tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
     yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d"); nxt = (now + timedelta(days=2)).strftime("%Y-%m-%d")
-    reset_counter(); before = CACHE["api_calls_today"]
+    reset_counter()
     tm = build_day(today); tom = build_day(tomorrow)
     return {"dates": {"yesterday": {"date": yesterday, "matches": [], "accumulators": {}}, "today": {"date": today, "matches": tm, "accumulators": build_accas(tm, today)}, "tomorrow": {"date": tomorrow, "matches": tom, "accumulators": build_accas(tom, tomorrow)}, "next_tomorrow": {"date": nxt, "matches": [], "accumulators": {}}}, "current_date": today, "last_update": datetime.now(WAT).isoformat(), "api_calls_today": CACHE["api_calls_today"]}
 
@@ -138,39 +157,33 @@ def empty_data():
     now = datetime.now(WAT)
     today = now.strftime("%Y-%m-%d"); tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
     yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d"); nxt = (now + timedelta(days=2)).strftime("%Y-%m-%d")
-    return {"dates": {"yesterday": {"date": yesterday, "matches": [], "accumulators": {}}, "today": {"date": today, "matches": [], "accumulators": {}}, "tomorrow": {"date": tomorrow, "matches": [], "accumulators": {}}, "next_tomorrow": {"date": nxt, "matches": [], "accumulators": {}}}, "current_date": today, "last_update": "Never - Press REFRESH in /admin", "api_calls_today": CACHE["api_calls_today"]}
+    return {"dates": {"yesterday": {"date": yesterday, "matches": [], "accumulators": {}}, "today": {"date": today, "matches": [], "accumulators": {}}, "tomorrow": {"date": tomorrow, "matches": [], "accumulators": {}}, "next_tomorrow": {"date": nxt, "matches": [], "accumulators": {}}}, "current_date": today, "last_update": "Loading...", "api_calls_today": CACHE["api_calls_today"]}
 
 @app.route("/")
 def index():
+    # NO ADMIN - site loads by itself. If no data, fetch once.
+    if CACHE.get("data") is None and can_call():
+        with LOCK:
+            if CACHE.get("data") is None:
+                CACHE["data"] = build_all()
     data = CACHE.get("data") or empty_data()
     sel = request.args.get("date", "today")
     sd = data["dates"].get(sel) or data["dates"]["today"]
     return render_template("index.html", data=data, selected_date=sel, dates=data["dates"], matches=sd["matches"], accas=sd["accumulators"], date=sd["date"], total=len(sd["matches"]), api_calls=CACHE["api_calls_today"], last_update=data["last_update"], api_key_set=bool(API_KEY))
 
-# ===== ADMIN - THIS IS WHAT YOU ASKED FOR =====
-@app.route("/admin")
-def admin():
-    data = CACHE.get("data") or empty_data()
-    return render_template("admin.html", api_calls=CACHE["api_calls_today"], last_update=data["last_update"], quota_exhausted=(CACHE["api_calls_today"] >= DAILY_CAP))
-
 @app.route("/api/refresh")
 def refresh():
-    key = request.args.get("key", "")
-    if key != os.getenv("ADMIN_PASSWORD", "goalszone247"):
-        return jsonify({"status": "error", "message": "Wrong password"}), 403
+    # No password - just refresh, cap protects you
     if not can_call():
-        return jsonify({"status": "cap_reached", "message": f"Daily cap {DAILY_CAP} reached.", "api_calls_today": CACHE["api_calls_today"]}), 429
+        return jsonify({"status": "cap_reached", "message": "Daily cap reached.", "api_calls_today": CACHE["api_calls_today"]}), 429
     with LOCK:
         data = build_all(); CACHE["data"] = data
-        return jsonify({"status": "ok", "message": f"Refreshed! Today {len(data['dates']['today']['matches'])} + Tomorrow {len(data['dates']['tomorrow']['matches'])} matches.", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "api_calls_today": data["api_calls_today"], "last_update": data["last_update"]})
+        return jsonify({"status": "ok", "message": f"Refreshed! Today {len(data['dates']['today']['matches'])} + Tomorrow {len(data['dates']['tomorrow']['matches'])}", "api_calls_today": data["api_calls_today"]})
 
 @app.route("/api/live")
 def live():
-    key = request.args.get("key", "")
-    if key != os.getenv("ADMIN_PASSWORD", "goalszone247"):
-        return jsonify({"status": "error", "message": "Wrong password"}), 403
     if CACHE.get("data") is None:
-        return jsonify({"status": "error", "message": "No data yet. Press REFRESH first."})
+        return jsonify({"status": "error", "message": "No data yet."})
     now = time.time()
     if now - CACHE.get("last_live", 0) < 300:
         return jsonify(CACHE["data"])
