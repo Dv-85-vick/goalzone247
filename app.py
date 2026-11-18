@@ -12,9 +12,16 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "goalszone247")
 BASE = "https://v3.football.api-sports.io"
 HEADERS = {"x-apisports-key": API_KEY} if API_KEY else {}
 WAT = ZoneInfo("Africa/Lagos")
-CACHE_SECONDS = 7200
+
+# v21 - VICTOR'S RULE - EXACTLY WHAT HE SAID:
+# 1. REMOVE: 2-hour lock - site can fetch ANYTIME
+# 2. REMOVE: Admin-only - anyone can fetch, no password needed
+# 3. REMOVE: "Already done today" - cron can run anytime
+# 4. KEEP: Daily cap 60 - stop at 60 so you never go out of limit
+# 5. KEEP: Today + Tomorrow only, 7 markets, accumulators
+CACHE_SECONDS = 300  # 5 min only - so site can fetch anytime, not 2 hours
 LIVE_CHECK_SECONDS = 300
-DAILY_CALL_CAP = 20
+DAILY_CALL_CAP = 60  # Victor said 60 - stop at 60
 ESTIMATED_MARKETS = {"over15": 1.25, "over25": 1.50, "btts": 1.65, "home_over15": 1.60, "away_over15": 1.60, "home_1x_over15": 1.45, "away_x2_over15": 1.50}
 STRONG_LEAGUES = {"Premier League", "Championship", "La Liga", "LaLiga", "Bundesliga", "2. Bundesliga", "3. Liga", "Serie A", "Serie B", "Ligue 1", "Ligue 2", "Eredivisie", "Eerste Divisie", "Primeira Liga", "Liga Portugal", "Pro League", "Challenger Pro League", "Super Lig", "Primera Division", "Liga MX", "MLS", "Major League Soccer", "Premiership", "Scottish Premiership", "Super League", "Superliga", "Allsvenskan", "Superettan", "Eliteserien", "1. Divisjon", "Ekstraklasa", "First League", "HNL", "Austrian Bundesliga", "2. Liga", "Swiss Super League", "Challenge League", "Danish Superliga", "Norwegian Eliteserien", "Swedish Allsvenskan", "Polish Ekstraklasa", "Czech First League", "Croatian HNL", "Greek Super League", "Israeli Premier League", "Romanian Liga I", "Hungarian NB I", "Slovenian PrvaLiga", "Serbian SuperLiga", "Bulgarian First League", "Brazil Serie A", "Argentina Primera Division", "Chile Primera Division", "Colombia Primera A", "Uruguay Primera Division", "Peru Liga 1", "Ecuador Liga Pro", "Japan J1 League", "Korea K League 1", "Australia A-League", "South Africa Premier Division", "Egypt Premier League", "Morocco Botola Pro", "Nigeria NPFL", "Ghana Premier League", "Kenya Premier League", "Veikkausliiga", "Meistriliiga", "Virsliga", "A Lyga", "Urvalsdeild", "Úrvalsdeild", "Faroe Islands Premier League", "Cymru Premier", "Iceland Premier League"}
 SMART_MAX_ODD = {"over15": 1.45, "over25": 1.85, "btts": 1.95, "home_over15": 1.95, "away_over15": 1.95, "home_1x_over15": 1.75, "away_x2_over15": 1.85}
@@ -71,7 +78,7 @@ def api_get(endpoint, params, with_timezone=True):
     try:
         p = dict(params)
         if with_timezone and "timezone" not in p: p["timezone"] = "Africa/Lagos"
-        response = requests.get(f"{BASE}/{endpoint}", headers=HEADERS, params=p, timeout=6)
+        response = requests.get(f"{BASE}/{endpoint}", headers=HEADERS, params=p, timeout=8)
         CACHE["api_calls_today"] = CACHE.get("api_calls_today", 0) + 1
         if response.status_code in (403, 429):
             CACHE["quota_exhausted"] = True; CACHE["last_error"] = f"API quota finished ({response.status_code}). Resets midnight."; return []
@@ -191,7 +198,7 @@ def generate_accumulators(matches, date_string=""):
     return acc
 def build_all():
     now = datetime.now(WAT); today = now.strftime("%Y-%m-%d"); tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d"); yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d"); next_day = (now + timedelta(days=2)).strftime("%Y-%m-%d")
-    _reset_daily_counter_if_needed(); before = CACHE.get("api_calls_today", 0)
+    _reset_daily_counter_if_needed()
     today_matches = _build_day(today, with_odds=False); tomorrow_matches = _build_day(tomorrow, with_odds=False)
     dates = {"yesterday": {"date": yesterday, "matches": [], "accumulators": {}}, "today": {"date": today, "matches": today_matches, "accumulators": generate_accumulators(today_matches, today)}, "tomorrow": {"date": tomorrow, "matches": tomorrow_matches, "accumulators": generate_accumulators(tomorrow_matches, tomorrow)}, "next_tomorrow": {"date": next_day, "matches": [], "accumulators": {}},}
     after = CACHE.get("api_calls_today", 0)
@@ -213,8 +220,6 @@ def refresh_live_scores_only():
         now = time.monotonic()
         if now - CACHE.get("last_live_check", 0) < LIVE_CHECK_SECONDS: return CACHE["data"]
         today_matches = CACHE["data"]["dates"]["today"]["matches"]
-        has_live = any(m["status"] in ("1H", "2H", "HT", "ET", "P", "LIVE") for m in today_matches)
-        if not has_live: CACHE["last_live_check"] = now; return CACHE["data"]
         CACHE["last_live_check"] = now
         fixtures = api_get("fixtures", {"date": CACHE["data"]["current_date"], "live": "all"}, with_timezone=True)
         if not fixtures: return CACHE["data"]
@@ -229,54 +234,56 @@ def refresh_live_scores_only():
         CACHE["data"]["dates"]["today"]["accumulators"] = generate_accumulators(today_matches, CACHE["data"]["current_date"]); return CACHE["data"]
 @app.route("/")
 def index():
-    # v19 INSTANT OPEN - NEVER fetch on homepage. This fixes the hang. Fetch only via /admin or /api/cron.
-    if CACHE.get("data") is not None:
-        data = CACHE["data"]; selected_date = request.args.get("date", "today"); selected_data = data["dates"].get(selected_date) or data["dates"].get("today")
-        def _rank(m):
-            s = m.get("status", "NS")
-            if s in ("1H", "2H", "HT", "ET", "P", "LIVE"): return 0
-            if m.get("is_postponed"): return 2
-            if s == "NS": return 1
-            if s in ("FT", "AET", "PEN"): return 3
-            return 2
-        ordered = sorted(selected_data["matches"], key=lambda m: (_rank(m), m.get("time", "")))
-        return render_template("index.html", data=data, selected_date=selected_date, dates=data["dates"], matches=ordered, accas=selected_data["accumulators"], date=selected_data["date"], total=len(selected_data["matches"]), api_calls=data["api_calls_today"], last_update=data["last_update"], api_key_set=bool(API_KEY), cache_until=data.get("cache_until"))
-    data = _empty_data(); selected_date = request.args.get("date", "today"); selected_data = data["dates"].get(selected_date) or data["dates"].get("today")
-    return render_template("index.html", data=data, selected_date=selected_date, dates=data["dates"], matches=[], accas={}, date=selected_data["date"], total=0, api_calls=CACHE.get("api_calls_today", 0), last_update=data["last_update"], api_key_set=bool(API_KEY), cache_until=data.get("cache_until"))
+    # v21: Fetch ANYTIME - no 2h lock, no admin block. Only cap 60 stops it.
+    # If cache is empty OR older than 5 min, fetch fresh.
+    data = None
+    if CACHE.get("data") is None:
+        try: data = get_data()
+        except Exception: data = _empty_data()
+    else:
+        data = CACHE["data"]
+        if time.monotonic() - CACHE.get("last_fetch", 0) > CACHE_SECONDS:
+            try: data = get_data()
+            except Exception: pass
+    selected_date = request.args.get("date", "today"); selected_data = data["dates"].get(selected_date) or data["dates"].get("today")
+    def _rank(m):
+        s = m.get("status", "NS")
+        if s in ("1H", "2H", "HT", "ET", "P", "LIVE"): return 0
+        if m.get("is_postponed"): return 2
+        if s == "NS": return 1
+        if s in ("FT", "AET", "PEN"): return 3
+        return 2
+    ordered = sorted(selected_data["matches"], key=lambda m: (_rank(m), m.get("time", "")))
+    return render_template("index.html", data=data, selected_date=selected_date, dates=data["dates"], matches=ordered, accas=selected_data["accumulators"], date=selected_data["date"], total=len(selected_data["matches"]), api_calls=data["api_calls_today"], last_update=data["last_update"], api_key_set=bool(API_KEY), cache_until=data.get("cache_until"))
 @app.route("/api/data")
 def api_data():
-    if request.args.get("go") != "1": return jsonify({"status": "loading", "message": "Auto runs once daily at 00:05 WAT. Admin only: use /admin to refresh."}), 202
-    if request.args.get("key") != ADMIN_PASSWORD: return jsonify({"status": "forbidden", "message": "Admin only. Visitors cannot refresh."}), 403
+    # v21: No password, fetch anytime until cap 60
     try: data = get_data()
     except Exception as e: return jsonify({"status": "loading", "message": str(e)}), 202
     return jsonify({"status": "ok", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "last_update": data["last_update"], "api_calls_today": data["api_calls_today"]})
 @app.route("/api/refresh")
 def refresh():
-    if request.args.get("key") != ADMIN_PASSWORD: return jsonify({"status": "forbidden", "message": "Admin only. Visitors cannot refresh."}), 403
-    with DATA_LOCK:
-        now = time.monotonic()
-        if CACHE["data"] is not None and now - CACHE["last_fetch"] < CACHE_SECONDS:
-            remaining = int(CACHE_SECONDS - (now - CACHE["last_fetch"])); return jsonify({"status": "locked", "message": f"Already refreshed. Next refresh in {remaining//60} minutes.", "retry_after_seconds": remaining, "cache_until": CACHE["data"].get("cache_until")}), 429
-        if not _can_call_api(): return jsonify({"status": "cap_reached", "message": f"Daily cap {DAILY_CALL_CAP} reached.", "api_calls_today": CACHE.get("api_calls_today", 0)}), 429
+    # v21: NO LOCK, NO PASSWORD. Refresh ANYTIME until cap 60. Cap is the ONLY protection left.
+    if not _can_call_api(): return jsonify({"status": "cap_reached", "message": f"Daily cap {DAILY_CALL_CAP} reached. Showing last saved data. Resets midnight.", "api_calls_today": CACHE.get("api_calls_today", 0)}), 429
+    try:
         data = refresh_cache_locked(); CACHE["last_manual_refresh"] = time.monotonic(); return jsonify({"status": "ok", "message": "Data refreshed.", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "last_update": data["last_update"], "api_calls_today": data["api_calls_today"]})
+    except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
 @app.route("/api/live")
 def live():
-    if request.args.get("key") != ADMIN_PASSWORD: return jsonify({"status": "forbidden", "message": "Admin only."}), 403
+    # v21: No password, but still respects cap 60
     data = refresh_live_scores_only(); return jsonify(data)
 @app.route("/api/cron")
 def cron_daily():
-    today = _today_str()
-    if CACHE.get("last_auto_date") == today: return jsonify({"status": "already_done", "message": f"Auto refresh already done today {today}. 0 API calls."}), 200
-    if CACHE.get("quota_exhausted"): return jsonify({"status": "quota_exhausted", "message": "API quota finished."}), 200
-    if not _can_call_api(): return jsonify({"status": "cap_reached", "message": "Daily cap reached."}), 200
+    # v21: NO "already done today" block. Cron can run anytime until cap 60.
+    if not _can_call_api(): return jsonify({"status": "cap_reached", "message": "Daily cap 60 reached. 0 API calls."}), 200
     try:
-        data = refresh_cache_locked(); CACHE["last_auto_date"] = today; return jsonify({"status": "ok", "message": f"Auto refresh done for {today}.", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "api_calls_today": data["api_calls_today"]})
+        data = refresh_cache_locked(); CACHE["last_auto_date"] = _today_str(); return jsonify({"status": "ok", "message": "Auto refresh done.", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "api_calls_today": data["api_calls_today"]})
     except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
 @app.route("/admin")
 def admin():
     data = CACHE.get("data") or _empty_data(); return render_template("admin.html", data=data, api_calls=data.get("api_calls_today", 0), last_update=data.get("last_update"), quota_exhausted=data.get("quota_exhausted", False))
 @app.route("/api/debug")
 def debug():
-    data = CACHE.get("data") or _empty_data(); return jsonify({"api_key_set": bool(API_KEY), "last_error": CACHE.get("last_error"), "last_update": data.get("last_update"), "cache_until": data.get("cache_until"), "api_calls_today": CACHE.get("api_calls_today", 0), "daily_cap": DAILY_CALL_CAP, "counts": {k: len(v["matches"]) for k, v in data["dates"].items()}, "rules": "Odds: Today+Tomorrow only. Cache: 2h lock."})
+    data = CACHE.get("data") or _empty_data(); return jsonify({"api_key_set": bool(API_KEY), "last_error": CACHE.get("last_error"), "last_update": data.get("last_update"), "cache_until": data.get("cache_until"), "api_calls_today": CACHE.get("api_calls_today", 0), "daily_cap": DAILY_CALL_CAP, "counts": {k: len(v["matches"]) for k, v in data["dates"].items()}, "rules": "v21: Fetch ANYTIME, Cache 5min, Cap 60 only protection. No 2h lock, No admin-only."})
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000)); app.run(host="0.0.0.0", port=port)
