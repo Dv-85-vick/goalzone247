@@ -13,15 +13,15 @@ BASE = "https://v3.football.api-sports.io"
 HEADERS = {"x-apisports-key": API_KEY} if API_KEY else {}
 WAT = ZoneInfo("Africa/Lagos")
 
-# v21 - VICTOR'S RULE - EXACTLY WHAT HE SAID:
-# 1. REMOVE: 2-hour lock - site can fetch ANYTIME
-# 2. REMOVE: Admin-only - anyone can fetch, no password needed
-# 3. REMOVE: "Already done today" - cron can run anytime
-# 4. KEEP: Daily cap 60 - stop at 60 so you never go out of limit
-# 5. KEEP: Today + Tomorrow only, 7 markets, accumulators
-CACHE_SECONDS = 300  # 5 min only - so site can fetch anytime, not 2 hours
+# v22 - FIX 504 + VICTOR'S RULE:
+# 1. Homepage NEVER fetches - instant open, no 504, no hang
+# 2. /api/refresh fetches ANYTIME - no 2h lock, no admin password
+# 3. KEEP Cap 60 - stops at 60, never out of limit
+# 4. ULTRA-LIGHT - max 80 fixtures, fast accumulators, no timeout
+CACHE_SECONDS = 300
 LIVE_CHECK_SECONDS = 300
-DAILY_CALL_CAP = 60  # Victor said 60 - stop at 60
+DAILY_CALL_CAP = 60
+MAX_FIXTURES = 80
 ESTIMATED_MARKETS = {"over15": 1.25, "over25": 1.50, "btts": 1.65, "home_over15": 1.60, "away_over15": 1.60, "home_1x_over15": 1.45, "away_x2_over15": 1.50}
 STRONG_LEAGUES = {"Premier League", "Championship", "La Liga", "LaLiga", "Bundesliga", "2. Bundesliga", "3. Liga", "Serie A", "Serie B", "Ligue 1", "Ligue 2", "Eredivisie", "Eerste Divisie", "Primeira Liga", "Liga Portugal", "Pro League", "Challenger Pro League", "Super Lig", "Primera Division", "Liga MX", "MLS", "Major League Soccer", "Premiership", "Scottish Premiership", "Super League", "Superliga", "Allsvenskan", "Superettan", "Eliteserien", "1. Divisjon", "Ekstraklasa", "First League", "HNL", "Austrian Bundesliga", "2. Liga", "Swiss Super League", "Challenge League", "Danish Superliga", "Norwegian Eliteserien", "Swedish Allsvenskan", "Polish Ekstraklasa", "Czech First League", "Croatian HNL", "Greek Super League", "Israeli Premier League", "Romanian Liga I", "Hungarian NB I", "Slovenian PrvaLiga", "Serbian SuperLiga", "Bulgarian First League", "Brazil Serie A", "Argentina Primera Division", "Chile Primera Division", "Colombia Primera A", "Uruguay Primera Division", "Peru Liga 1", "Ecuador Liga Pro", "Japan J1 League", "Korea K League 1", "Australia A-League", "South Africa Premier Division", "Egypt Premier League", "Morocco Botola Pro", "Nigeria NPFL", "Ghana Premier League", "Kenya Premier League", "Veikkausliiga", "Meistriliiga", "Virsliga", "A Lyga", "Urvalsdeild", "Úrvalsdeild", "Faroe Islands Premier League", "Cymru Premier", "Iceland Premier League"}
 SMART_MAX_ODD = {"over15": 1.45, "over25": 1.85, "btts": 1.95, "home_over15": 1.95, "away_over15": 1.95, "home_1x_over15": 1.75, "away_x2_over15": 1.85}
@@ -33,9 +33,7 @@ def tier_of(m, mk):
 def smart_score(m, mk):
     odd = m["markets"].get(mk, 99)
     if odd is None or odd <= 1: return -999
-    confidence = (1.0 / odd) * 100
-    bonus = 15 if m.get("league") in STRONG_LEAGUES else 0
-    return confidence + bonus
+    return (1.0 / odd) * 100 + (15 if m.get("league") in STRONG_LEAGUES else 0)
 def why_pick(m, mk):
     odd = m["markets"].get(mk, 0)
     league = m.get("league","")
@@ -78,7 +76,7 @@ def api_get(endpoint, params, with_timezone=True):
     try:
         p = dict(params)
         if with_timezone and "timezone" not in p: p["timezone"] = "Africa/Lagos"
-        response = requests.get(f"{BASE}/{endpoint}", headers=HEADERS, params=p, timeout=8)
+        response = requests.get(f"{BASE}/{endpoint}", headers=HEADERS, params=p, timeout=5)
         CACHE["api_calls_today"] = CACHE.get("api_calls_today", 0) + 1
         if response.status_code in (403, 429):
             CACHE["quota_exhausted"] = True; CACHE["last_error"] = f"API quota finished ({response.status_code}). Resets midnight."; return []
@@ -86,7 +84,7 @@ def api_get(endpoint, params, with_timezone=True):
             body = response.json()
             if body.get("errors"): CACHE["last_error"] = str(body.get("errors"))
             return body.get("response", [])
-        CACHE["last_error"] = f"{endpoint} {response.status_code}: {response.text[:300]}"; return []
+        CACHE["last_error"] = f"{endpoint} {response.status_code}: {response.text[:200]}"; return []
     except Exception as e:
         CACHE["last_error"] = str(e); return []
 def parse_odds(odds_data):
@@ -107,31 +105,16 @@ def parse_odds(odds_data):
                     if "Both Teams to Score" in name and sel == "Yes": markets.setdefault("btts", odd)
                     if "Home Team" in name and "Over 1.5" in sel: markets.setdefault("home_over15", odd)
                     if "Away Team" in name and "Over 1.5" in sel: markets.setdefault("away_over15", odd)
-            low_name = name.lower(); low_sel = sel.lower()
-            is_1x = ("1x" in low_sel) or ("home" in low_sel and "draw" in low_sel) or ("home win or draw" in low_name)
-            is_x2 = ("x2" in low_sel) or ("2x" in low_sel) or ("away" in low_sel and "draw" in low_sel) or ("away win or draw" in low_name)
-            is_over15 = ("over 1.5" in low_sel) or ("over 1.5" in low_name and "over" in low_sel) or ("1.5" in low_sel and "over" in low_sel)
-            is_combo_bet = ("double chance" in low_name) or ("1x" in low_name) or ("x2" in low_name) or ("win or draw" in low_name)
-            if is_combo_bet and is_over15:
-                if is_1x: markets.setdefault("home_1x_over15", odd)
-                elif is_x2: markets.setdefault("away_x2_over15", odd)
             if len(markets) == 7: break
         return markets
     except Exception: return markets
-def _build_day(date_string, with_odds):
+def _build_day(date_string):
     fixtures = api_get("fixtures", {"date": date_string}, with_timezone=True)
-    odds_map = {}
-    if with_odds:
-        odds_list = api_get("odds", {"date": date_string}, with_timezone=True)
-        for item in odds_list:
-            try: odds_map[item["fixture"]["id"]] = item
-            except (KeyError, TypeError): continue
     matches = []
-    for fixture in fixtures[:150]:
+    for fixture in fixtures[:MAX_FIXTURES]:
         try:
             fid = fixture["fixture"]["id"]
-            markets = parse_odds(odds_map.get(fid)) if with_odds else {}
-            if not markets: markets = dict(ESTIMATED_MARKETS)
+            markets = dict(ESTIMATED_MARKETS)
             over15 = markets.get("over15"); score_rank = (10 - (over15 - 1.0) * 2 if over15 else 0)
             fd = fixture["fixture"].get("date", ""); sd = fixture["fixture"].get("status", {}); goals = fixture.get("goals", {})
             _st = sd.get("short", "NS"); _sh = goals.get("home") or 0; _sa = goals.get("away") or 0
@@ -145,37 +128,43 @@ def _build_day(date_string, with_odds):
     matches.sort(key=lambda m: m["score_rank"], reverse=True)
     return matches
 def generate_accumulators(matches, date_string=""):
-    def _leg(m, mk): return {"fixture_id": m["fixture_id"], "home": m["home"], "away": m["away"], "league": m["league"], "country": m.get("country", ""), "date": m.get("date", date_string), "time": m["time"], "score_home": m.get("score_home", 0), "score_away": m.get("score_away", 0), "status": m.get("status", "NS"), "is_postponed": m.get("is_postponed", False), "display_status": m.get("display_status", m.get("status", "NS")), "elapsed": m.get("elapsed", 0), "market": mk, "market_label": MARKET_LABELS.get(mk, mk), "odd": m["markets"].get(mk), "result": market_result(mk, m.get("status", "NS"), m.get("score_home", 0), m.get("score_away", 0)), "why": why_pick(m, mk) + f" - Tier: {tier_of(m, mk)}", "smart_score": round(smart_score(m, mk), 1)}
+    # ULTRA-FAST: sort once, then pick in order. No re-sort inside loop.
+    if not matches: return {"midnight": {"legs": [], "total_odds": 0, "count": 0, "target": 12, "overall_status": "PENDING", "wins": 0, "losses": 0, "pending": 0}, "early": {"legs": [], "total_odds": 0, "count": 0, "target": 12, "overall_status": "PENDING", "wins": 0, "losses": 0, "pending": 0}, "mix": {"10": {"legs": [], "total_odds": 0, "count": 0, "target": 10, "overall_status": "PENDING", "wins": 0, "losses": 0, "pending": 0}, "20": {"legs": [], "total_odds": 0, "count": 0, "target": 20, "overall_status": "PENDING", "wins": 0, "losses": 0, "pending": 0}}}
+    def _leg(m, mk): return {"fixture_id": m["fixture_id"], "home": m["home"], "away": m["away"], "league": m["league"], "country": m.get("country", ""), "date": m.get("date", date_string), "time": m["time"], "score_home": m.get("score_home", 0), "score_away": m.get("score_away", 0), "status": m.get("status", "NS"), "is_postponed": m.get("is_postponed", False), "display_status": m.get("display_status", m.get("status", "NS")), "elapsed": m.get("elapsed", 0), "market": mk, "market_label": MARKET_LABELS.get(mk, mk), "odd": m["markets"].get(mk), "result": market_result(mk, m.get("status", "NS"), m.get("score_home", 0), m.get("score_away", 0)), "why": why_pick(m, mk), "smart_score": round(smart_score(m, mk), 1)}
     def _wrap(legs, total, target):
         r = [l["result"] for l in legs]; overall = "WIN" if r and all(x == "WIN" for x in r) else ("LOST" if any(x == "LOST" for x in r) else "PENDING"); return {"legs": legs, "total_odds": round(total, 2), "count": len(legs), "target": target, "overall_status": overall, "wins": r.count("WIN"), "losses": r.count("LOST"), "pending": r.count("PENDING")}
+    # Pre-sort by smart score once
+    sorted_matches = sorted(matches, key=lambda x: -smart_score(x, "over15"))
     USED = set()
-    def _pick(pool, mk, want_unused=True):
-        def _tier_rank(x): return {"STRONG": 0, "GOOD": 1, "FILL": 2}.get(tier_of(x, mk), 2)
-        cands = sorted(pool, key=lambda x: (_tier_rank(x), -smart_score(x, mk)))
-        for m in cands:
+    def _pick_sorted(mk):
+        for m in sorted_matches:
             if m["fixture_id"] not in USED and m["markets"].get(mk): return m
-        if want_unused: return None
-        for m in cands:
+        for m in sorted_matches:
             if m["markets"].get(mk): return m
         return None
-    def build_single(mk, target, pool=None):
-        pool = pool if pool is not None else matches; legs, total = [], 1.0; seen = set()
-        while total < target:
-            m = _pick([x for x in pool if x["fixture_id"] not in seen], mk, want_unused=True)
-            if m is None: m = _pick([x for x in pool if x["fixture_id"] not in seen], mk, want_unused=False)
+    def build_single(mk, target):
+        legs, total, seen = [], 1.0, set()
+        while total < target and len(legs) < 12:
+            m = None
+            for cand in sorted_matches:
+                if cand["fixture_id"] not in seen and cand["fixture_id"] not in USED and cand["markets"].get(mk): m = cand; break
+            if m is None:
+                for cand in sorted_matches:
+                    if cand["fixture_id"] not in seen and cand["markets"].get(mk): m = cand; break
             if m is None: break
             seen.add(m["fixture_id"]); USED.add(m["fixture_id"]); legs.append(_leg(m, mk)); total *= m["markets"].get(mk)
-            if len(legs) >= 20: break
         return _wrap(legs, total, target)
-    def _in_window(m, start_h, end_h):
-        try: hh = int((m.get("time") or "00:00")[:2]); return start_h <= hh < end_h
+    def _in_window(m, s, e):
+        try: hh = int((m.get("time") or "00:00")[:2]); return s <= hh < e
         except Exception: return False
     def build_mix_pool(target, pool):
         order = ["over15", "over25", "btts", "home_over15", "away_over15", "home_1x_over15", "away_x2_over15"]; legs, total, seen = [], 1.0, set(); idx = 0
-        while total < target and len(legs) < 20:
+        pool_sorted = sorted(pool, key=lambda x: -smart_score(x, "over15"))
+        while total < target and len(legs) < 12:
             mk = order[idx % len(order)]; idx += 1
-            m = _pick([x for x in pool if x["fixture_id"] not in seen], mk, want_unused=True)
-            if m is None: m = _pick([x for x in pool if x["fixture_id"] not in seen], mk, want_unused=False)
+            m = None
+            for cand in pool_sorted:
+                if cand["fixture_id"] not in seen and cand["fixture_id"] not in USED and cand["markets"].get(mk): m = cand; break
             if m is None: continue
             seen.add(m["fixture_id"]); USED.add(m["fixture_id"]); legs.append(_leg(m, mk)); total *= m["markets"].get(mk)
         return _wrap(legs, total, target)
@@ -187,10 +176,11 @@ def generate_accumulators(matches, date_string=""):
     for mk in ["over15", "over25", "btts", "home_over15", "away_over15", "home_1x_over15", "away_x2_over15"]: acc[mk] = {"2.5": build_single(mk, 2.5), "8": build_single(mk, 8.0)}
     def build_mix(target):
         order = ["over15", "over25", "btts", "home_over15", "away_over15", "home_1x_over15", "away_x2_over15"]; legs, total, seen = [], 1.0, set(); idx = 0
-        while total < target and len(legs) < 20:
+        while total < target and len(legs) < 12:
             mk = order[idx % len(order)]; idx += 1
-            m = _pick([x for x in matches if x["fixture_id"] not in seen], mk, want_unused=True)
-            if m is None: m = _pick([x for x in matches if x["fixture_id"] not in seen], mk, want_unused=False)
+            m = None
+            for cand in sorted_matches:
+                if cand["fixture_id"] not in seen and cand["fixture_id"] not in USED and cand["markets"].get(mk): m = cand; break
             if m is None: continue
             seen.add(m["fixture_id"]); USED.add(m["fixture_id"]); legs.append(_leg(m, mk)); total *= m["markets"].get(mk)
         return _wrap(legs, total, target)
@@ -199,7 +189,7 @@ def generate_accumulators(matches, date_string=""):
 def build_all():
     now = datetime.now(WAT); today = now.strftime("%Y-%m-%d"); tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d"); yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d"); next_day = (now + timedelta(days=2)).strftime("%Y-%m-%d")
     _reset_daily_counter_if_needed()
-    today_matches = _build_day(today, with_odds=False); tomorrow_matches = _build_day(tomorrow, with_odds=False)
+    today_matches = _build_day(today); tomorrow_matches = _build_day(tomorrow)
     dates = {"yesterday": {"date": yesterday, "matches": [], "accumulators": {}}, "today": {"date": today, "matches": today_matches, "accumulators": generate_accumulators(today_matches, today)}, "tomorrow": {"date": tomorrow, "matches": tomorrow_matches, "accumulators": generate_accumulators(tomorrow_matches, tomorrow)}, "next_tomorrow": {"date": next_day, "matches": [], "accumulators": {}},}
     after = CACHE.get("api_calls_today", 0)
     return {"dates": dates, "current_date": today, "last_update": datetime.now(WAT).isoformat(), "api_calls_today": after, "last_error": CACHE.get("last_error"), "quota_exhausted": CACHE.get("quota_exhausted", False), "cache_until": (datetime.now(WAT) + timedelta(seconds=CACHE_SECONDS)).isoformat()}
@@ -214,37 +204,10 @@ def get_data():
         if CACHE["data"] is not None and now - CACHE["last_fetch"] < CACHE_SECONDS: return CACHE["data"]
         try: return refresh_cache_locked()
         except Exception as e: CACHE["last_error"] = str(e); return _empty_data()
-def refresh_live_scores_only():
-    with DATA_LOCK:
-        if CACHE["data"] is None: return get_data()
-        now = time.monotonic()
-        if now - CACHE.get("last_live_check", 0) < LIVE_CHECK_SECONDS: return CACHE["data"]
-        today_matches = CACHE["data"]["dates"]["today"]["matches"]
-        CACHE["last_live_check"] = now
-        fixtures = api_get("fixtures", {"date": CACHE["data"]["current_date"], "live": "all"}, with_timezone=True)
-        if not fixtures: return CACHE["data"]
-        live_map = {}
-        for f in fixtures:
-            try: live_map[f["fixture"]["id"]] = f
-            except (KeyError, TypeError): continue
-        for m in today_matches:
-            f = live_map.get(m["fixture_id"])
-            if f:
-                sd = f["fixture"].get("status", {}); goals = f.get("goals", {}); m["status"] = sd.get("short", m["status"]); m["score_home"] = goals.get("home") or 0; m["score_away"] = goals.get("away") or 0; m["elapsed"] = sd.get("elapsed") or 0; m["market_results"] = {k: market_result(k, m["status"], m["score_home"], m["score_away"]) for k in m.get("markets", {})}
-        CACHE["data"]["dates"]["today"]["accumulators"] = generate_accumulators(today_matches, CACHE["data"]["current_date"]); return CACHE["data"]
 @app.route("/")
 def index():
-    # v21: Fetch ANYTIME - no 2h lock, no admin block. Only cap 60 stops it.
-    # If cache is empty OR older than 5 min, fetch fresh.
-    data = None
-    if CACHE.get("data") is None:
-        try: data = get_data()
-        except Exception: data = _empty_data()
-    else:
-        data = CACHE["data"]
-        if time.monotonic() - CACHE.get("last_fetch", 0) > CACHE_SECONDS:
-            try: data = get_data()
-            except Exception: pass
+    # v22: HOMEPAGE NEVER FETCHES - INSTANT OPEN, NO 504. Fetch only via /api/refresh button.
+    data = CACHE.get("data") or _empty_data()
     selected_date = request.args.get("date", "today"); selected_data = data["dates"].get(selected_date) or data["dates"].get("today")
     def _rank(m):
         s = m.get("status", "NS")
@@ -257,24 +220,36 @@ def index():
     return render_template("index.html", data=data, selected_date=selected_date, dates=data["dates"], matches=ordered, accas=selected_data["accumulators"], date=selected_data["date"], total=len(selected_data["matches"]), api_calls=data["api_calls_today"], last_update=data["last_update"], api_key_set=bool(API_KEY), cache_until=data.get("cache_until"))
 @app.route("/api/data")
 def api_data():
-    # v21: No password, fetch anytime until cap 60
+    # v22: No password, fetch anytime until cap 60. Homepage does NOT call this automatically.
+    if not _can_call_api(): return jsonify({"status": "cap_reached", "message": f"Daily cap {DAILY_CALL_CAP} reached.", "api_calls_today": CACHE.get("api_calls_today", 0)}), 429
     try: data = get_data()
     except Exception as e: return jsonify({"status": "loading", "message": str(e)}), 202
     return jsonify({"status": "ok", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "last_update": data["last_update"], "api_calls_today": data["api_calls_today"]})
 @app.route("/api/refresh")
 def refresh():
-    # v21: NO LOCK, NO PASSWORD. Refresh ANYTIME until cap 60. Cap is the ONLY protection left.
+    # v22: FETCH ANYTIME - NO LOCK, NO PASSWORD. Only cap 60 stops it.
     if not _can_call_api(): return jsonify({"status": "cap_reached", "message": f"Daily cap {DAILY_CALL_CAP} reached. Showing last saved data. Resets midnight.", "api_calls_today": CACHE.get("api_calls_today", 0)}), 429
     try:
         data = refresh_cache_locked(); CACHE["last_manual_refresh"] = time.monotonic(); return jsonify({"status": "ok", "message": "Data refreshed.", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "last_update": data["last_update"], "api_calls_today": data["api_calls_today"]})
     except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
 @app.route("/api/live")
 def live():
-    # v21: No password, but still respects cap 60
-    data = refresh_live_scores_only(); return jsonify(data)
+    if not _can_call_api(): return jsonify({"status": "cap_reached", "message": "Cap 60 reached."}), 429
+    with DATA_LOCK:
+        if CACHE["data"] is None: return jsonify(get_data())
+        fixtures = api_get("fixtures", {"date": CACHE["data"]["current_date"], "live": "all"}, with_timezone=True)
+        if fixtures:
+            live_map = {}
+            for f in fixtures:
+                try: live_map[f["fixture"]["id"]] = f
+                except (KeyError, TypeError): continue
+            for m in CACHE["data"]["dates"]["today"]["matches"]:
+                f = live_map.get(m["fixture_id"])
+                if f:
+                    sd = f["fixture"].get("status", {}); goals = f.get("goals", {}); m["status"] = sd.get("short", m["status"]); m["score_home"] = goals.get("home") or 0; m["score_away"] = goals.get("away") or 0; m["elapsed"] = sd.get("elapsed") or 0
+        return jsonify(CACHE["data"])
 @app.route("/api/cron")
 def cron_daily():
-    # v21: NO "already done today" block. Cron can run anytime until cap 60.
     if not _can_call_api(): return jsonify({"status": "cap_reached", "message": "Daily cap 60 reached. 0 API calls."}), 200
     try:
         data = refresh_cache_locked(); CACHE["last_auto_date"] = _today_str(); return jsonify({"status": "ok", "message": "Auto refresh done.", "today": len(data["dates"]["today"]["matches"]), "tomorrow": len(data["dates"]["tomorrow"]["matches"]), "api_calls_today": data["api_calls_today"]})
@@ -284,6 +259,6 @@ def admin():
     data = CACHE.get("data") or _empty_data(); return render_template("admin.html", data=data, api_calls=data.get("api_calls_today", 0), last_update=data.get("last_update"), quota_exhausted=data.get("quota_exhausted", False))
 @app.route("/api/debug")
 def debug():
-    data = CACHE.get("data") or _empty_data(); return jsonify({"api_key_set": bool(API_KEY), "last_error": CACHE.get("last_error"), "last_update": data.get("last_update"), "cache_until": data.get("cache_until"), "api_calls_today": CACHE.get("api_calls_today", 0), "daily_cap": DAILY_CALL_CAP, "counts": {k: len(v["matches"]) for k, v in data["dates"].items()}, "rules": "v21: Fetch ANYTIME, Cache 5min, Cap 60 only protection. No 2h lock, No admin-only."})
+    data = CACHE.get("data") or _empty_data(); return jsonify({"api_key_set": bool(API_KEY), "last_error": CACHE.get("last_error"), "last_update": data.get("last_update"), "cache_until": data.get("cache_until"), "api_calls_today": CACHE.get("api_calls_today", 0), "daily_cap": DAILY_CALL_CAP, "counts": {k: len(v["matches"]) for k, v in data["dates"].items()}, "rules": "v22: Homepage instant, Refresh anytime, Cap 60 only."})
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000)); app.run(host="0.0.0.0", port=port)
