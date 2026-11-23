@@ -1,43 +1,270 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>GoalsZone24/7</title>
-<style>*{box-sizing:border-box}body{background:#1a1a1a;color:#fff;font-family:Arial,sans-serif;margin:0;padding:12px;overflow-x:hidden}.topbar{display:flex;gap:8px;flex-wrap:wrap}.topbar input,.topbar select{flex:1;min-width:140px;background:#2a2a2a;border:1px solid #3a3a3a;color:#fff;padding:11px 12px;border-radius:10px;font-size:14px}.date-tabs{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}.date-tabs a{padding:9px 14px;border-radius:20px;background:#2a2a2a;color:#fff;text-decoration:none;font-size:13px}.date-tabs a.active{background:#00ff88;color:#000;font-weight:bold}.info{color:#888;font-size:11px;margin:8px 4px}.group{background:#222;border:1px solid #333;border-radius:14px;padding:14px;margin-top:16px}.group-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}.group-title{font-size:19px;font-weight:bold}.target{border:1px solid #00ff88;color:#00ff88;padding:6px 12px;border-radius:20px;font-size:13px;white-space:nowrap;font-weight:bold}.inner{background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:11px;margin-top:10px}.pill{border:none;border-radius:6px;padding:7px 10px;font-size:13px;font-weight:bold}.pill.odds{background:#22c55e;color:#000}.leg{border-top:1px solid #2c2c2c;padding:10px 0}.leg-teams{font-size:14px;font-weight:bold}.leg-meta{color:#999;font-size:11px;margin-top:5px}.leg-line{display:flex;justify-content:space-between;gap:8px;margin-top:5px}.leg-odd{color:#22c55e;font-weight:bold}.match-card{background:#222;border:1px solid #333;border-radius:12px;padding:12px;margin-top:10px}.match-league{font-size:11px;color:#999}.match-teams{font-weight:bold;margin:7px 0;font-size:15px}.match-time{font-size:12px;color:#aaa}.mkt{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.mkt span{background:#2a2a2a;border:1px solid #3a3a3a;padding:6px 9px;border-radius:20px;font-size:11px;font-weight:bold}.mkt b{color:#22c55e}.empty{text-align:center;padding:30px 10px;background:#222;border-radius:12px;color:#aaa;margin-top:10px}.footer{text-align:center;color:#888;font-size:12px;margin:28px 0 60px}</style></head>
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Goalzone247 — Preview 2</title>
+<style>
+:root{--bg:#0d1318;--panel:#151f26;--panel2:#1b2831;--line:#2b3b45;--text:#edf4f7;--muted:#9eb0ba;--green:#28d17c;--gold:#f2bd54;--blue:#70b7ff;--red:#ff7373}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Arial,sans-serif}
+header{background:#111b22;border-bottom:1px solid var(--line);padding:14px max(16px,calc((100% - 1180px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-size:22px;font-weight:800;letter-spacing:.3px}.brand span{color:var(--green)}.tagline{color:var(--muted);font-size:12px}
+.wrap{max-width:1180px;margin:auto;padding:16px}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.pill{border:1px solid var(--line);border-radius:30px;padding:5px 10px;color:var(--muted);font-size:11px}
+.tabs,.filters{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+button,select,input{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 11px;border-radius:8px;font:inherit}
+button.active{background:var(--green);border-color:var(--green);color:#062013;font-weight:700}
+input{flex:1;min-width:170px}select{min-width:140px}
+.ad{border:1px dashed #53636d;border-radius:10px;min-height:66px;display:flex;align-items:center;justify-content:center;color:#8497a2;font-size:12px;background:#111a20;margin:14px 0}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px;min-width:0}
+.span12{grid-column:span 12}.span8{grid-column:span 8}.span4{grid-column:span 4}
+h2{font-size:15px;margin:0 0 10px}h3{font-size:13px;margin:0 0 7px}
+.small{font-size:11px;color:var(--muted)}.muted{color:var(--muted)}
+.marketcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.acca{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px}
+.acca strong{display:block;font-size:12px;margin-bottom:4px}.odds{color:var(--green);font-weight:800;font-size:12px}
+.leg{border-top:1px solid var(--line);padding-top:7px;margin-top:7px;font-size:11px}.leg b{display:block;font-size:12px}
+.badge{display:inline-block;border-radius:20px;padding:3px 7px;font-size:10px;font-weight:700;margin-right:4px}
+.live{background:#53252b;color:#ffaaaa}.up{background:#183e30;color:#8af0bd}.ft{background:#34414a;color:#c6d1d8}
+.match{display:grid;grid-template-columns:76px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.score{font-weight:800;font-size:16px;text-align:center}.teams{font-weight:700}.meta{font-size:10px;color:var(--muted)}
+.marketchips{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.chip{border:1px solid #355044;color:#a9e9c8;border-radius:5px;padding:2px 6px;font-size:10px}
+.sectionhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+footer{max-width:1180px;margin:12px auto 30px;padding:0 16px;color:var(--muted);font-size:11px}
+.float{position:fixed;right:14px;bottom:18px;display:grid;gap:7px}.float button{border-radius:50%;width:38px;height:38px;padding:0;background:var(--green);color:#062013;font-weight:bold}
+@media(max-width:760px){.span8,.span4{grid-column:span 12}.marketcards{grid-template-columns:repeat(2,minmax(0,1fr))}.match{grid-template-columns:60px 1fr}.match>.pill{grid-column:2}.brand{font-size:19px}}
+@media(max-width:420px){.marketcards{grid-template-columns:1fr}.wrap{padding:11px}.panel{padding:11px}}
+</style>
+</head>
 <body>
-<div class="topbar"><input id="searchBox" placeholder="Search team or league..." oninput="filterMatches()"><select id="leagueFilter" onchange="filterMatches()"><option value="">All Leagues ({{ total }})</option>{% for lg in matches|map(attribute='league')|unique|sort %}<option value="{{ lg }}">{{ lg }}</option>{% endfor %}</select></div>
-<div style="color:#aaa;font-size:14px;margin:14px 4px 6px">{{ total }} fixtures loaded successfully.</div>
-<div class="date-tabs"><a href="/?date=yesterday" class="{% if selected_date=='yesterday' %}active{% endif %}">Yesterday</a><a href="/?date=today" class="{% if selected_date=='today' %}active{% endif %}">Today</a><a href="/?date=tomorrow" class="{% if selected_date=='tomorrow' %}active{% endif %}">Tomorrow</a><a href="/?date=next_tomorrow" class="{% if selected_date=='next_tomorrow' %}active{% endif %}">Next</a></div>
-<div class="info">Date: {{ date }} | API Calls: {{ api_calls }} | Key: {{ api_key_set }} | Last Update: {{ last_update }}</div>
-
-{% macro show_acca(acca) %}
-{% if acca %}
-<div class="inner"><button class="pill odds">{{ acca.get('total_odd', acca.get('total_odds', 1.0)) }} odds</button> <span style="font-size:12px;color:#999">{{ acca.get('title','') }} • {{ acca.get('legs',[])|length }} Selections • {{ acca.get('status','PENDING') }}</span>
-{% for leg in acca.get('legs',[]) %}<div class="leg"><div class="leg-teams">{{ leg.get('home','') }} vs {{ leg.get('away','') }}</div><div class="leg-line"><span style="color:#aaa;font-size:11px">{{ leg.get('market','') }}</span><span class="leg-odd">@ {{ leg.get('odd','') }}</span></div><div class="leg-meta">{{ leg.get('league','') }} | {{ leg.get('time','') }} | {{ leg.get('tier','') }}</div><div style="font-size:11px;color:#999">{{ leg.get('why','') }}</div></div>{% endfor %}
+<header>
+<div>
+<div class="brand">GOALZONE<span>247</span></div>
+<div class="tagline">Football goal markets • Match insights • Accumulator centre</div>
 </div>
-{% else %}<div class="inner" style="color:#999">Not enough unique matches available.</div>{% endif %}
-{% endmacro %}
+<div class="pill">PREVIEW 2 · COMPACT DASHBOARD</div>
+</header>
 
-{% if total == 0 %}
-<div class="empty">⚽ No fixtures available for this date.</div>
-{% else %}
-<div class="group"><div class="group-head"><div class="group-title">Midnight Accumulator</div><div class="target">12.00 Target</div></div>{{ show_acca(accas.get('midnight')) }}</div>
-<div class="group"><div class="group-head"><div class="group-title">Early Morning Accumulator</div><div class="target">12.00 Target</div></div>{{ show_acca(accas.get('early')) }}</div>
-<div class="group"><div class="group-head"><div class="group-title">Banker Accumulators</div><div class="target">2.50+ Target</div></div>
-{{ show_acca(accas.get('banker_over15')) }}{{ show_acca(accas.get('banker_over25')) }}{{ show_acca(accas.get('banker_btts')) }}{{ show_acca(accas.get('banker_home_over15')) }}{{ show_acca(accas.get('banker_away_over15')) }}{{ show_acca(accas.get('banker_home_1x_over15')) }}{{ show_acca(accas.get('banker_away_x2_over15')) }}</div>
-<div class="group"><div class="group-head"><div class="group-title">High Roller Accumulators</div><div class="target">8.00-10.00 Target</div></div>
-{{ show_acca(accas.get('high_over15')) }}{{ show_acca(accas.get('high_over25')) }}{{ show_acca(accas.get('high_btts')) }}{{ show_acca(accas.get('high_home_over15')) }}{{ show_acca(accas.get('high_away_over15')) }}{{ show_acca(accas.get('high_home_1x_over15')) }}{{ show_acca(accas.get('high_away_x2_over15')) }}</div>
-<div class="group"><div class="group-head"><div class="group-title">Mega Mixed Accumulator</div><div class="target">10+ / 20+ Target</div></div>{{ show_acca(accas.get('mega_10')) }}{{ show_acca(accas.get('mega_20')) }}</div>
-{% endif %}
-
-<div class="group"><div class="group-head"><div class="group-title">All Fixtures & Predictions</div><div class="target">{{ total }} Matches</div></div>
-<div id="fixturesList">
-{% for match in matches %}
-<div class="match-card" data-search="{{ (match.home ~ ' ' ~ match.away ~ ' ' ~ match.league)|lower }}" data-league="{{ match.league }}">
-<div class="match-league">{{ match.league }} • {{ match.status }}</div>
-<div class="match-teams">{{ match.home }} vs {{ match.away }}</div>
-<div class="match-time">{{ date }} | {{ match.time }}{% if match.status in ['1H','2H','HT','ET'] %} | {{ match.score_home }} - {{ match.score_away }}{% if match.elapsed %} | {{ match.elapsed }}'{% endif %}{% elif match.status in ['FT','AET','PEN'] %} | FT {{ match.score_home }} - {{ match.score_away }}{% endif %}</div>
-<div class="mkt">{% for key, label in [('over15','Over 1.5'),('over25','Over 2.5'),('btts','BTTS'),('home_over15','Home Over 1.5'),('away_over15','Away Over 1.5'),('home_1x_over15','Home Win/Draw + Over 1.5'),('away_x2_over15','Away Win/Draw + Over 1.5')] %}{% if match.markets.get(key) %}<span>{{ label }} <b>@ {{ match.markets[key] }}</b> - {{ match.results.get(key,'PENDING') }}</span>{% endif %}{% endfor %}</div>
+<main class="wrap">
+<div class="topline">
+<div><b>Match Centre</b><div class="small">Illustrative layout preview — sample fixtures, not live predictions</div></div>
+<span class="pill">Times shown in Nigeria WAT</span>
 </div>
-{% endfor %}
-</div></div>
-<div class="footer">GoalsZone24/7 • Last Update: {{ last_update }}</div>
-<script>function filterMatches(){var q=(document.getElementById('searchBox').value||'').toLowerCase();var lg=document.getElementById('leagueFilter').value;document.querySelectorAll('.match-card').forEach(function(c){var ok=true;if(q&&!c.dataset.search.includes(q))ok=false;if(lg&&c.dataset.league!==lg)ok=false;c.style.display=ok?'':'none';});}</script>
-</body></html>
+
+<div class="tabs">
+<button>Yesterday</button>
+<button class="active">Today</button>
+<button>Today + Tomorrow</button>
+<button>Tomorrow</button>
+</div>
+
+<div class="filters">
+<input placeholder="Search team or league">
+<select>
+<option>All markets</option>
+<option>Over 1.5</option>
+<option>Over 2.5</option>
+<option>BTTS — Yes</option>
+<option>Home Over 1.5</option>
+<option>Away Over 1.5</option>
+<option>Home Score Over 0.5</option>
+<option>Away Score Over 0.5</option>
+<option>1X + BTTS</option>
+<option>X2 + BTTS</option>
+<option>Home Win + Over 1.5</option>
+<option>Away Win + Over 1.5</option>
+<option>First-Half Over 0.5</option>
+</select>
+<select><option>All leagues</option></select>
+</div>
+
+<div class="ad">ADVERTISEMENT SPACE · reserved for future monetization</div>
+
+<div class="grid">
+<section class="panel span12">
+<div class="sectionhead">
+<h2>Market Accumulators</h2>
+<span class="pill">Individual market cards · minimum target 12.00+</span>
+</div>
+
+<div class="marketcards">
+<div class="acca">
+<strong>Over 1.5 Goals</strong>
+<span class="odds">Target 12.00+</span>
+<div class="small">Only qualifying selections; no forced legs.</div>
+<div class="leg"><b>Example FC vs Example United</b>Country · League · Date · 18:30 WAT<br>Over 1.5 · Est. odds 1.35</div>
+</div>
+
+<div class="acca">
+<strong>Over 2.5 Goals</strong>
+<span class="odds">Target 12.00+</span>
+<div class="small">Only qualifying selections; no forced legs.</div>
+<div class="leg"><b>Example City vs Example Town</b>Country · League · Date · 20:00 WAT<br>Over 2.5 · Est. odds 1.72</div>
+</div>
+
+<div class="acca">
+<strong>BTTS — Yes</strong>
+<span class="odds">Target 12.00+</span>
+<div class="small">Both teams to score.</div>
+<div class="leg"><b>Example Athletic vs Example Rovers</b>Country · League · Date · 19:00 WAT<br>BTTS Yes · Est. odds 1.80</div>
+</div>
+
+<div class="acca">
+<strong>Home Over 1.5</strong>
+<span class="odds">Target 12.00+</span>
+<div class="small">Home team to score 2+.</div>
+<div class="leg"><b>Example FC vs Example United</b>Country · League · Date · 18:30 WAT<br>Home Over 1.5 · Est. odds 1.60</div>
+</div>
+
+<div class="acca">
+<strong>Away Over 1.5</strong>
+<span class="odds">Target 12.00+</span>
+<div class="small">Away team to score 2+.</div>
+<div class="leg"><b>Example City vs Example Town</b>Country · League · Date · 20:00 WAT<br>Away Over 1.5 · Est. odds 1.55</div>
+</div>
+
+<div class="acca">
+<strong>1X + BTTS</strong>
+<span class="odds">Target 12.00+</span>
+<div class="small">Home win or draw + both teams score.</div>
+<div class="leg"><b>Example Athletic vs Example Rovers</b>Country · League · Date · 19:00 WAT<br>1X + BTTS · Est. odds 1.95</div>
+</div>
+
+<div class="acca">
+<strong>X2 + BTTS</strong>
+<span class="odds">Target 12.00+</span>
+<div class="small">Away win or draw + both teams score.</div>
+<div class="leg"><b>Example Albion vs Example County</b>Country · League · Date · 17:45 WAT<br>X2 + BTTS · Est. odds 2.05</div>
+</div>
+
+<div class="acca">
+<strong>Home Win + Over 1.5</strong>
+<span class="odds">Target 12.00+</span>
+<div class="small">Home victory and 2+ total goals.</div>
+<div class="leg"><b>Example FC vs Example United</b>Country · League · Date · 18:30 WAT<br>Home Win + Over 1.5 · Est. odds 1.75</div>
+</div>
+
+<div class="acca">
+<strong>Away Win + Over 1.5</strong>
+<span class="odds">Target 12.00+</span>
+<div class="small">Away victory and 2+ total goals.</div>
+<div class="leg"><b>Example City vs Example Town</b>Country · League · Date · 20:00 WAT<br>Away Win + Over 1.5 · Est. odds 2.10</div>
+</div>
+
+<div class="acca">
+<strong>First-Half Over 0.5</strong>
+<span class="odds">Target 12.00+</span>
+<div class="small">At least one first-half goal.</div>
+<div class="leg"><b>Example Sporting vs Example Stars</b>Country · League · Date · 16:00 WAT<br>1st Half Over 0.5 · Est. odds 1.40</div>
+</div>
+</div>
+
+<p class="small" style="margin:10px 0 0">
+Home Team Over 0.5 and Away Team Over 0.5 remain eligible for mixed accumulators only; they do not get separate market cards. All displayed odds are illustrative model estimates, not bookmaker prices.
+</p>
+</section>
+
+<section class="panel span8">
+<div class="sectionhead">
+<h2>Mixed & Time-Window Accumulators</h2>
+<span class="pill">Existing categories retained</span>
+</div>
+
+<div class="marketcards">
+<div class="acca">
+<strong>Midnight Accumulator</strong>
+<div class="small">Existing selection rules retained.</div>
+<div class="odds">Existing target retained</div>
+</div>
+
+<div class="acca">
+<strong>Early Morning Accumulator</strong>
+<div class="small">Existing selection rules retained.</div>
+<div class="odds">Existing target retained</div>
+</div>
+
+<div class="acca">
+<strong>High Roller</strong>
+<div class="small">Existing category retained; qualifying market legs.</div>
+<div class="odds">No forced selections</div>
+</div>
+
+<div class="acca">
+<strong>Mega Mixed</strong>
+<div class="small">Existing programmed target and logic preserved.</div>
+<div class="odds">Unchanged</div>
+</div>
+
+<div class="acca">
+<strong>2.50 Odds Rollover Challenge</strong>
+<div class="small">Preserved as an existing accumulator feature.</div>
+<div class="odds">Existing challenge rules</div>
+</div>
+</div>
+</section>
+
+<aside class="panel span4">
+<h2>League Tables</h2>
+<p class="small">League table area retained in the dashboard layout. Standings content will use available verified data only.</p>
+<div class="ad" style="min-height:120px">AD SPACE</div>
+</aside>
+
+<section class="panel span12">
+<div class="sectionhead">
+<h2>Available Matches</h2>
+<span class="pill">Live → Upcoming → Finished</span>
+</div>
+
+<div class="match">
+<div><span class="badge live">LIVE</span><div class="score">1–0</div></div>
+<div>
+<div class="teams">Sample Home FC vs Sample Away FC</div>
+<div class="meta">Country · Premier Division · 23 Nov · 64′ WAT</div>
+<div class="marketchips">
+<span class="chip">Over 1.5</span>
+<span class="chip">BTTS</span>
+<span class="chip">Home O1.5</span>
+</div>
+</div>
+<span class="pill">Live now</span>
+</div>
+
+<div class="match">
+<div><span class="badge up">UPCOMING</span><div class="score">—</div></div>
+<div>
+<div class="teams">Sample United vs Sample Athletic</div>
+<div class="meta">Country · National League · 23 Nov · 18:30 WAT</div>
+<div class="marketchips">
+<span class="chip">Over 1.5</span>
+<span class="chip">1X + BTTS</span>
+</div>
+</div>
+<span class="pill">18:30 WAT</span>
+</div>
+
+<div class="match">
+<div><span class="badge ft">FINISHED</span><div class="score">2–1</div></div>
+<div>
+<div class="teams">Sample Town vs Sample Rovers</div>
+<div class="meta">Country · Championship · 23 Nov · FT</div>
+<div class="marketchips"><span class="chip">Final score</span></div>
+</div>
+<span class="pill">Full time</span>
+</div>
+</section>
+</div>
+</main>
+
+<footer>
+Goalzone247 preview only. Sample teams and prices are placeholders to demonstrate layout; no live fixtures or betting recommendations are represented. Predictions are uncertain. 18+ · Gamble responsibly.
+</footer>
+
+<div class="float">
+<button onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Scroll to top">↑</button>
+<button onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" aria-label="Scroll to bottom">↓</button>
+</div>
+</body>
+</html>
