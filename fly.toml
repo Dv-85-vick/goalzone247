@@ -1,12 +1,11 @@
-# fly.toml app configuration file generated for goalzone247 on 2026-11-21T20:05:40Z
-#
-# See https://docs.fly.io/reference/configuration for information about how to use this file.
-#
+
+# Goalzone247 Fly.io configuration
 
 app = 'goalzone247'
 primary_region = 'jnb'
 
 [build]
+
 [http_service]
   internal_port = 8080
   force_https = true
@@ -14,6 +13,10 @@ primary_region = 'jnb'
   auto_start_machines = true
   min_machines_running = 0
   processes = ['app']
+
+[mounts]
+  source = 'goalzone_data'
+  destination = '/data'
 
 [[vm]]
   memory = '256mb'
