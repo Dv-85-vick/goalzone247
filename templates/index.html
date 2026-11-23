@@ -1,270 +1,369 @@
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Goalzone247 — Preview 2</title>
+<title>Goalzone247</title>
 <style>
-:root{--bg:#0d1318;--panel:#151f26;--panel2:#1b2831;--line:#2b3b45;--text:#edf4f7;--muted:#9eb0ba;--green:#28d17c;--gold:#f2bd54;--blue:#70b7ff;--red:#ff7373}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Arial,sans-serif}
-header{background:#111b22;border-bottom:1px solid var(--line);padding:14px max(16px,calc((100% - 1180px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.brand{font-size:22px;font-weight:800;letter-spacing:.3px}.brand span{color:var(--green)}.tagline{color:var(--muted);font-size:12px}
-.wrap{max-width:1180px;margin:auto;padding:16px}
-.topline{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-.pill{border:1px solid var(--line);border-radius:30px;padding:5px 10px;color:var(--muted);font-size:11px}
+:root{--bg:#0d1318;--panel:#151f26;--panel2:#1b2831;--line:#2b3b45;--text:#edf4f7;--muted:#9eb0ba;--green:#28d17c;--gold:#f2bd54;--red:#ff7373;--blue:#70b7ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Arial,sans-serif}
+header{background:#111b22;border-bottom:1px solid var(--line);padding:14px max(14px,calc((100% - 1180px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-size:23px;font-weight:900}.brand span{color:var(--green)}
+.tagline,.muted,.small{color:var(--muted)}.tagline,.small{font-size:11px}
+.wrap{max-width:1180px;margin:auto;padding:15px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:13px;min-width:0}
+h2{font-size:15px;margin:0 0 10px}
+h3{font-size:13px;margin:0 0 8px}
+.topline,.sectionhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pill{border:1px solid var(--line);border-radius:30px;padding:5px 10px;font-size:11px;color:var(--muted)}
 .tabs,.filters{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
 button,select,input{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 11px;border-radius:8px;font:inherit}
-button.active{background:var(--green);border-color:var(--green);color:#062013;font-weight:700}
-input{flex:1;min-width:170px}select{min-width:140px}
-.ad{border:1px dashed #53636d;border-radius:10px;min-height:66px;display:flex;align-items:center;justify-content:center;color:#8497a2;font-size:12px;background:#111a20;margin:14px 0}
+button{cursor:pointer}
+button.active{background:var(--green);border-color:var(--green);color:#062013;font-weight:bold}
+input{flex:1;min-width:150px}
+select{min-width:130px}
+.ad{border:1px dashed #53636d;border-radius:10px;min-height:65px;display:flex;align-items:center;justify-content:center;color:#8497a2;font-size:11px;margin:12px 0;background:#111a20}
 .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px;min-width:0}
-.span12{grid-column:span 12}.span8{grid-column:span 8}.span4{grid-column:span 4}
-h2{font-size:15px;margin:0 0 10px}h3{font-size:13px;margin:0 0 7px}
-.small{font-size:11px;color:var(--muted)}.muted{color:var(--muted)}
-.marketcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.span8{grid-column:span 8}.span4{grid-column:span 4}.span12{grid-column:span 12}
+.market-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.market{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px;min-width:0}
+.market-name{font-size:11px;font-weight:700;min-height:30px}
+.market-bottom{display:flex;justify-content:space-between;align-items:center;gap:5px;margin-top:6px}
+.badge{display:inline-block;border-radius:20px;padding:3px 7px;font-size:9px;font-weight:800;white-space:nowrap}
+.win{background:#174b35;color:#8af0bd}
+.lose{background:#57272d;color:#ffaaaa}
+.pending{background:#51401e;color:#ffdc8b}
+.unavailable{background:#34414a;color:#c6d1d8}
+.live{background:#53252b;color:#ffaaaa}
+.upcoming{background:#183e30;color:#8af0bd}
+.finished{background:#34414a;color:#c6d1d8}
+.match{border:1px solid var(--line);border-radius:10px;padding:11px;margin-top:10px;background:#111a20}
+.match-head{display:grid;grid-template-columns:75px 1fr auto;gap:10px;align-items:center}
+.score{text-align:center;font-size:18px;font-weight:900}
+.teams{font-size:14px;font-weight:800}
+.meta{font-size:10px;color:var(--muted);margin-top:3px}
+.match-tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.match-tools button{font-size:10px;padding:5px 8px}
+.markets-title{font-size:11px;color:var(--gold);margin-top:12px;font-weight:bold}
+.market-note{font-size:10px;color:var(--muted);margin-top:8px}
+.acca-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 .acca{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px}
-.acca strong{display:block;font-size:12px;margin-bottom:4px}.odds{color:var(--green);font-weight:800;font-size:12px}
-.leg{border-top:1px solid var(--line);padding-top:7px;margin-top:7px;font-size:11px}.leg b{display:block;font-size:12px}
-.badge{display:inline-block;border-radius:20px;padding:3px 7px;font-size:10px;font-weight:700;margin-right:4px}
-.live{background:#53252b;color:#ffaaaa}.up{background:#183e30;color:#8af0bd}.ft{background:#34414a;color:#c6d1d8}
-.match{display:grid;grid-template-columns:76px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
-.score{font-weight:800;font-size:16px;text-align:center}.teams{font-weight:700}.meta{font-size:10px;color:var(--muted)}
-.marketchips{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.chip{border:1px solid #355044;color:#a9e9c8;border-radius:5px;padding:2px 6px;font-size:10px}
-.sectionhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
-footer{max-width:1180px;margin:12px auto 30px;padding:0 16px;color:var(--muted);font-size:11px}
-.float{position:fixed;right:14px;bottom:18px;display:grid;gap:7px}.float button{border-radius:50%;width:38px;height:38px;padding:0;background:var(--green);color:#062013;font-weight:bold}
-@media(max-width:760px){.span8,.span4{grid-column:span 12}.marketcards{grid-template-columns:repeat(2,minmax(0,1fr))}.match{grid-template-columns:60px 1fr}.match>.pill{grid-column:2}.brand{font-size:19px}}
-@media(max-width:420px){.marketcards{grid-template-columns:1fr}.wrap{padding:11px}.panel{padding:11px}}
+.acca strong{display:block;font-size:12px}
+.acca .target{color:var(--green);font-weight:800;font-size:12px;margin:5px 0}
+.acca .status{font-size:11px;color:var(--muted)}
+.empty{padding:16px;text-align:center;color:var(--muted);font-size:12px}
+footer{max-width:1180px;margin:15px auto 35px;padding:0 15px;color:var(--muted);font-size:11px}
+.float{position:fixed;right:12px;bottom:16px;display:grid;gap:7px}
+.float button{width:38px;height:38px;border-radius:50%;padding:0;background:var(--green);color:#062013;font-weight:bold}
+.hidden{display:none!important}
+@media(max-width:760px){
+ .span8,.span4{grid-column:span 12}
+ .market-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .match-head{grid-template-columns:60px 1fr}
+ .match-head>.match-tools{grid-column:1/-1}
+}
+@media(max-width:420px){
+ .wrap{padding:10px}.panel{padding:10px}
+ .market-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .acca-grid{grid-template-columns:1fr}
+ .teams{font-size:12px}
+}
 </style>
 </head>
 <body>
 <header>
-<div>
-<div class="brand">GOALZONE<span>247</span></div>
-<div class="tagline">Football goal markets • Match insights • Accumulator centre</div>
-</div>
-<div class="pill">PREVIEW 2 · COMPACT DASHBOARD</div>
+ <div>
+  <div class="brand">GOALZONE<span>247</span></div>
+  <div class="tagline">Football goal markets · Match insights · Accumulator centre</div>
+ </div>
+ <span class="pill">Nigeria time · WAT</span>
 </header>
 
 <main class="wrap">
-<div class="topline">
-<div><b>Match Centre</b><div class="small">Illustrative layout preview — sample fixtures, not live predictions</div></div>
-<span class="pill">Times shown in Nigeria WAT</span>
-</div>
+ <section class="panel">
+  <div class="topline">
+   <div><b>Match Centre</b><div class="small">Live results and approved goal markets</div></div>
+   <span class="pill" id="lastUpdated">Connecting…</span>
+  </div>
+  <div class="tabs" id="dateTabs">
+   <button data-date="yesterday">Yesterday</button>
+   <button class="active" data-date="today">Today</button>
+   <button data-date="both">Today + Tomorrow</button>
+   <button data-date="tomorrow">Tomorrow</button>
+  </div>
+  <div class="filters">
+   <input id="searchBox" placeholder="Search team or league">
+   <select id="marketFilter">
+    <option value="">All markets</option>
+    <option value="over15">Over 1.5 Goals</option>
+    <option value="over25">Over 2.5 Goals</option>
+    <option value="btts">BTTS — Yes</option>
+    <option value="home_over15">Home Over 1.5</option>
+    <option value="away_over15">Away Over 1.5</option>
+    <option value="one_x_btts">1X + BTTS</option>
+    <option value="x_two_btts">X2 + BTTS</option>
+    <option value="home_win_over15">Home Win + Over 1.5</option>
+    <option value="away_win_over15">Away Win + Over 1.5</option>
+    <option value="first_half_over05">First-Half Over 0.5</option>
+    <option value="home_team_over05">Home Team Over 0.5</option>
+    <option value="away_team_over05">Away Team Over 0.5</option>
+   </select>
+   <select id="leagueFilter"><option value="">All leagues</option></select>
+   <button id="refreshButton">Refresh</button>
+  </div>
+  <div class="small" id="loadStatus">Loading real fixtures…</div>
+ </section>
 
-<div class="tabs">
-<button>Yesterday</button>
-<button class="active">Today</button>
-<button>Today + Tomorrow</button>
-<button>Tomorrow</button>
-</div>
+ <div class="ad">ADVERTISEMENT SPACE · RESERVED FOR FUTURE MONETIZATION</div>
 
-<div class="filters">
-<input placeholder="Search team or league">
-<select>
-<option>All markets</option>
-<option>Over 1.5</option>
-<option>Over 2.5</option>
-<option>BTTS — Yes</option>
-<option>Home Over 1.5</option>
-<option>Away Over 1.5</option>
-<option>Home Score Over 0.5</option>
-<option>Away Score Over 0.5</option>
-<option>1X + BTTS</option>
-<option>X2 + BTTS</option>
-<option>Home Win + Over 1.5</option>
-<option>Away Win + Over 1.5</option>
-<option>First-Half Over 0.5</option>
-</select>
-<select><option>All leagues</option></select>
-</div>
+ <div class="grid">
+  <section class="panel span8">
+   <div class="sectionhead">
+    <h2>Individual Market Accumulators</h2>
+    <span class="pill">12.00+ target</span>
+   </div>
+   <p class="small">Each card uses only qualifying selections. No selections are forced to reach the target.</p>
+   <div class="acca-grid" id="individualAccas"><div class="empty">Waiting for backend…</div></div>
+  </section>
 
-<div class="ad">ADVERTISEMENT SPACE · reserved for future monetization</div>
+  <aside class="panel span4">
+   <h2>League Tables</h2>
+   <p class="small">Standings will appear here when verified league-table data is available.</p>
+   <div class="ad" style="min-height:120px">ADVERTISEMENT SPACE</div>
+  </aside>
 
-<div class="grid">
-<section class="panel span12">
-<div class="sectionhead">
-<h2>Market Accumulators</h2>
-<span class="pill">Individual market cards · minimum target 12.00+</span>
-</div>
+  <section class="panel span12">
+   <div class="sectionhead">
+    <h2>Mixed & Time-Window Accumulators</h2>
+    <span class="pill">Approved categories</span>
+   </div>
+   <div class="acca-grid" id="mixedAccas"><div class="empty">Waiting for backend…</div></div>
+  </section>
 
-<div class="marketcards">
-<div class="acca">
-<strong>Over 1.5 Goals</strong>
-<span class="odds">Target 12.00+</span>
-<div class="small">Only qualifying selections; no forced legs.</div>
-<div class="leg"><b>Example FC vs Example United</b>Country · League · Date · 18:30 WAT<br>Over 1.5 · Est. odds 1.35</div>
-</div>
-
-<div class="acca">
-<strong>Over 2.5 Goals</strong>
-<span class="odds">Target 12.00+</span>
-<div class="small">Only qualifying selections; no forced legs.</div>
-<div class="leg"><b>Example City vs Example Town</b>Country · League · Date · 20:00 WAT<br>Over 2.5 · Est. odds 1.72</div>
-</div>
-
-<div class="acca">
-<strong>BTTS — Yes</strong>
-<span class="odds">Target 12.00+</span>
-<div class="small">Both teams to score.</div>
-<div class="leg"><b>Example Athletic vs Example Rovers</b>Country · League · Date · 19:00 WAT<br>BTTS Yes · Est. odds 1.80</div>
-</div>
-
-<div class="acca">
-<strong>Home Over 1.5</strong>
-<span class="odds">Target 12.00+</span>
-<div class="small">Home team to score 2+.</div>
-<div class="leg"><b>Example FC vs Example United</b>Country · League · Date · 18:30 WAT<br>Home Over 1.5 · Est. odds 1.60</div>
-</div>
-
-<div class="acca">
-<strong>Away Over 1.5</strong>
-<span class="odds">Target 12.00+</span>
-<div class="small">Away team to score 2+.</div>
-<div class="leg"><b>Example City vs Example Town</b>Country · League · Date · 20:00 WAT<br>Away Over 1.5 · Est. odds 1.55</div>
-</div>
-
-<div class="acca">
-<strong>1X + BTTS</strong>
-<span class="odds">Target 12.00+</span>
-<div class="small">Home win or draw + both teams score.</div>
-<div class="leg"><b>Example Athletic vs Example Rovers</b>Country · League · Date · 19:00 WAT<br>1X + BTTS · Est. odds 1.95</div>
-</div>
-
-<div class="acca">
-<strong>X2 + BTTS</strong>
-<span class="odds">Target 12.00+</span>
-<div class="small">Away win or draw + both teams score.</div>
-<div class="leg"><b>Example Albion vs Example County</b>Country · League · Date · 17:45 WAT<br>X2 + BTTS · Est. odds 2.05</div>
-</div>
-
-<div class="acca">
-<strong>Home Win + Over 1.5</strong>
-<span class="odds">Target 12.00+</span>
-<div class="small">Home victory and 2+ total goals.</div>
-<div class="leg"><b>Example FC vs Example United</b>Country · League · Date · 18:30 WAT<br>Home Win + Over 1.5 · Est. odds 1.75</div>
-</div>
-
-<div class="acca">
-<strong>Away Win + Over 1.5</strong>
-<span class="odds">Target 12.00+</span>
-<div class="small">Away victory and 2+ total goals.</div>
-<div class="leg"><b>Example City vs Example Town</b>Country · League · Date · 20:00 WAT<br>Away Win + Over 1.5 · Est. odds 2.10</div>
-</div>
-
-<div class="acca">
-<strong>First-Half Over 0.5</strong>
-<span class="odds">Target 12.00+</span>
-<div class="small">At least one first-half goal.</div>
-<div class="leg"><b>Example Sporting vs Example Stars</b>Country · League · Date · 16:00 WAT<br>1st Half Over 0.5 · Est. odds 1.40</div>
-</div>
-</div>
-
-<p class="small" style="margin:10px 0 0">
-Home Team Over 0.5 and Away Team Over 0.5 remain eligible for mixed accumulators only; they do not get separate market cards. All displayed odds are illustrative model estimates, not bookmaker prices.
-</p>
-</section>
-
-<section class="panel span8">
-<div class="sectionhead">
-<h2>Mixed & Time-Window Accumulators</h2>
-<span class="pill">Existing categories retained</span>
-</div>
-
-<div class="marketcards">
-<div class="acca">
-<strong>Midnight Accumulator</strong>
-<div class="small">Existing selection rules retained.</div>
-<div class="odds">Existing target retained</div>
-</div>
-
-<div class="acca">
-<strong>Early Morning Accumulator</strong>
-<div class="small">Existing selection rules retained.</div>
-<div class="odds">Existing target retained</div>
-</div>
-
-<div class="acca">
-<strong>High Roller</strong>
-<div class="small">Existing category retained; qualifying market legs.</div>
-<div class="odds">No forced selections</div>
-</div>
-
-<div class="acca">
-<strong>Mega Mixed</strong>
-<div class="small">Existing programmed target and logic preserved.</div>
-<div class="odds">Unchanged</div>
-</div>
-
-<div class="acca">
-<strong>2.50 Odds Rollover Challenge</strong>
-<div class="small">Preserved as an existing accumulator feature.</div>
-<div class="odds">Existing challenge rules</div>
-</div>
-</div>
-</section>
-
-<aside class="panel span4">
-<h2>League Tables</h2>
-<p class="small">League table area retained in the dashboard layout. Standings content will use available verified data only.</p>
-<div class="ad" style="min-height:120px">AD SPACE</div>
-</aside>
-
-<section class="panel span12">
-<div class="sectionhead">
-<h2>Available Matches</h2>
-<span class="pill">Live → Upcoming → Finished</span>
-</div>
-
-<div class="match">
-<div><span class="badge live">LIVE</span><div class="score">1–0</div></div>
-<div>
-<div class="teams">Sample Home FC vs Sample Away FC</div>
-<div class="meta">Country · Premier Division · 23 Nov · 64′ WAT</div>
-<div class="marketchips">
-<span class="chip">Over 1.5</span>
-<span class="chip">BTTS</span>
-<span class="chip">Home O1.5</span>
-</div>
-</div>
-<span class="pill">Live now</span>
-</div>
-
-<div class="match">
-<div><span class="badge up">UPCOMING</span><div class="score">—</div></div>
-<div>
-<div class="teams">Sample United vs Sample Athletic</div>
-<div class="meta">Country · National League · 23 Nov · 18:30 WAT</div>
-<div class="marketchips">
-<span class="chip">Over 1.5</span>
-<span class="chip">1X + BTTS</span>
-</div>
-</div>
-<span class="pill">18:30 WAT</span>
-</div>
-
-<div class="match">
-<div><span class="badge ft">FINISHED</span><div class="score">2–1</div></div>
-<div>
-<div class="teams">Sample Town vs Sample Rovers</div>
-<div class="meta">Country · Championship · 23 Nov · FT</div>
-<div class="marketchips"><span class="chip">Final score</span></div>
-</div>
-<span class="pill">Full time</span>
-</div>
-</section>
-</div>
+  <section class="panel span12">
+   <div class="sectionhead">
+    <h2>Available Matches</h2>
+    <span class="pill">Live → Upcoming → Finished</span>
+   </div>
+   <div class="small">Every match displays all 12 approved markets. WIN/LOSE shows the settled match-market outcome, not a guaranteed prediction.</div>
+   <div id="matches"><div class="empty">Connecting to the Goalzone247 backend…</div></div>
+  </section>
+ </div>
+ <div class="ad">ADVERTISEMENT SPACE · FUTURE MONETIZATION</div>
 </main>
 
 <footer>
-Goalzone247 preview only. Sample teams and prices are placeholders to demonstrate layout; no live fixtures or betting recommendations are represented. Predictions are uncertain. 18+ · Gamble responsibly.
+ Goalzone247. Match-market WIN/LOSE badges describe the actual settled score outcome.
+ They do not mean a prediction was issued or guaranteed. Markets without sufficient result data
+ are marked unavailable. 18+ · Gamble responsibly.
 </footer>
 
 <div class="float">
-<button onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Scroll to top">↑</button>
-<button onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" aria-label="Scroll to bottom">↓</button>
+ <button onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Scroll to top">↑</button>
+ <button onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})" aria-label="Scroll to bottom">↓</button>
 </div>
+
+<script>
+"use strict";
+
+const MARKET_LIST = [
+ ["over15","Over 1.5 Goals"],
+ ["over25","Over 2.5 Goals"],
+ ["btts","BTTS — Yes"],
+ ["home_over15","Home Over 1.5"],
+ ["away_over15","Away Over 1.5"],
+ ["one_x_btts","1X + BTTS"],
+ ["x_two_btts","X2 + BTTS"],
+ ["home_win_over15","Home Win + Over 1.5"],
+ ["away_win_over15","Away Win + Over 1.5"],
+ ["first_half_over05","First-Half Over 0.5"],
+ ["home_team_over05","Home Team Over 0.5"],
+ ["away_team_over05","Away Team Over 0.5"]
+];
+
+const state = {fixtures:[], accumulators:{individual:[],mixed:[]}, date:"today"};
+const $ = id => document.getElementById(id);
+
+function esc(value){
+ return String(value ?? "").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[c]));
+}
+function statusClass(status){
+ const s=String(status||"UNAVAILABLE").toUpperCase();
+ if(s==="WIN")return "win";
+ if(s==="LOSE")return "lose";
+ if(s==="PENDING")return "pending";
+ return "unavailable";
+}
+function fixtureStatus(f){
+ const g=f.goalzone||{};
+ const code=String(f.fixture?.status?.short||"").toUpperCase();
+ if(g.status_group===0)return "LIVE";
+ if(g.status_group===2)return "FINISHED";
+ if(["1H","2H","HT","ET","P","LIVE","IN","BT"].includes(code))return "LIVE";
+ if(["FT","AET","PEN","AWD","WO"].includes(code))return "FINISHED";
+ return "UPCOMING";
+}
+function fixtureDate(f){
+ return f.goalzone?.date_wat || "";
+}
+function localDateKey(offset=0){
+ const d=new Date();
+ d.setDate(d.getDate()+offset);
+ return new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Lagos",year:"numeric",month:"2-digit",day:"2-digit"}).format(d);
+}
+function matchesDate(f){
+ const d=fixtureDate(f);
+ const today=localDateKey(0),tomorrow=localDateKey(1),yesterday=localDateKey(-1);
+ if(state.date==="today")return d===today;
+ if(state.date==="tomorrow")return d===tomorrow;
+ if(state.date==="both")return d===today||d===tomorrow;
+ if(state.date==="yesterday")return d===yesterday;
+ return true;
+}
+function marketData(f,id){
+ return f.goalzone?.markets?.[id] || {status:"UNAVAILABLE",label:"UNAVAILABLE"};
+}
+function renderMarketTiles(f){
+ return MARKET_LIST.map(([id,label])=>{
+  const m=marketData(f,id);
+  const status=String(m.status||"UNAVAILABLE").toUpperCase();
+  return `<div class="market">
+   <div class="market-name">${esc(label)}</div>
+   <div class="market-bottom">
+    <span class="small">${m.actual_result ? esc(m.actual_result) : "Market result"}</span>
+    <span class="badge ${statusClass(status)}">${esc(status)}</span>
+   </div>
+  </div>`;
+ }).join("");
+}
+function renderMatch(f){
+ const status=fixtureStatus(f);
+ const statusBadge=status==="LIVE"?"live":status==="FINISHED"?"finished":"upcoming";
+ const home=f.teams?.home?.name||"Home";
+ const away=f.teams?.away?.name||"Away";
+ const league=f.league?.name||"League unavailable";
+ const country=f.goalzone?.country||f.league?.country||"Country unavailable";
+ const score=f.goalzone?.score||"-–-";
+ const time=f.goalzone?.kickoff_wat||"Kickoff unavailable";
+ const minute=f.fixture?.status?.elapsed;
+ const clock=status==="LIVE"?(minute!=null?`${minute}′`:"Live"):status==="FINISHED"?"FT":time.slice(11,16)+" WAT";
+ const q=(home+" "+away+" "+league+" "+country).toLowerCase();
+ return `<article class="match" data-search="${esc(q)}" data-league="${esc(league)}" data-status="${status}">
+  <div class="match-head">
+   <div>
+    <span class="badge ${statusBadge}">${status}</span>
+    <div class="score">${esc(score)}</div>
+   </div>
+   <div>
+    <div class="teams">${esc(home)} vs ${esc(away)}</div>
+    <div class="meta">${esc(country)} · ${esc(league)} · ${esc(time)} WAT</div>
+    <div class="meta">${esc(clock)}</div>
+   </div>
+   <div class="match-tools">
+    <span class="pill">${esc(status)}</span>
+    <button type="button" class="toggleMarkets">Hide markets</button>
+   </div>
+  </div>
+  <div class="markets-title">ALL 12 APPROVED MARKETS · ACTUAL MARKET RESULTS</div>
+  <div class="market-grid">${renderMarketTiles(f)}</div>
+  <div class="market-note">Upcoming/live fixtures remain PENDING. Finished fixtures are settled from the actual full-time score; First-Half Over 0.5 requires a recorded half-time score. These are result badges, not proof that a forecast was made.</div>
+ </article>`;
+}
+function renderFixtures(){
+ const query=$("searchBox").value.trim().toLowerCase();
+ const league=$("leagueFilter").value;
+ const market=$("marketFilter").value;
+ let fixtures=state.fixtures.filter(f=>{
+  if(!matchesDate(f))return false;
+  const text=((f.teams?.home?.name||"")+" "+(f.teams?.away?.name||"")+" "+(f.league?.name||"")+" "+(f.league?.country||"")).toLowerCase();
+  if(query&&!text.includes(query))return false;
+  if(league&&(f.league?.name||"")!==league)return false;
+  if(market){
+   const m=marketData(f,market);
+   if(!m || m.status==="UNAVAILABLE")return false;
+  }
+  return true;
+ });
+ fixtures.sort((a,b)=>{
+  const rank=f=>f.goalzone?.status_group??1;
+  const diff=rank(a)-rank(b);
+  if(diff)return diff;
+  return String(a.goalzone?.kickoff_wat||"").localeCompare(String(b.goalzone?.kickoff_wat||""));
+ });
+ $("matches").innerHTML=fixtures.length?fixtures.map(renderMatch).join(""):'<div class="empty">No fixtures found for this date/filter. No sample matches have been inserted.</div>';
+ document.querySelectorAll(".toggleMarkets").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+   const grid=btn.closest(".match").querySelector(".market-grid");
+   const hidden=grid.classList.toggle("hidden");
+   btn.textContent=hidden?"Show markets":"Hide markets";
+  });
+ });
+}
+function renderAccumulatorCard(c){
+ const target=c.target_odds?Number(c.target_odds).toFixed(2)+"+":"Existing target";
+ const count=Array.isArray(c.selections)?c.selections.length:0;
+ const status=c.status||"WAITING_FOR_QUALIFIED_SELECTIONS";
+ const message=c.message||"Waiting for verified qualifying selections.";
+ return `<div class="acca">
+  <strong>${esc(c.title)}</strong>
+  <div class="target">Target: ${esc(target)}</div>
+  <div class="status">${esc(status)} · ${count} selections</div>
+  <div class="small" style="margin-top:5px">${esc(message)}</div>
+ </div>`;
+}
+function renderAccumulators(data){
+ const a=data||{};
+ $("individualAccas").innerHTML=(a.individual||[]).length
+  ?a.individual.map(renderAccumulatorCard).join("")
+  :'<div class="empty">No individual accumulator definitions returned.</div>';
+ $("mixedAccas").innerHTML=(a.mixed||[]).length
+  ?a.mixed.map(renderAccumulatorCard).join("")
+  :'<div class="empty">No mixed accumulator definitions returned.</div>';
+}
+function updateLeagueOptions(){
+ const select=$("leagueFilter");
+ const old=select.value;
+ const leagues=[...new Set(state.fixtures.map(f=>f.league?.name).filter(Boolean))].sort();
+ select.innerHTML='<option value="">All leagues</option>'+leagues.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join("");
+ if(leagues.includes(old))select.value=old;
+}
+async function loadData(force=false){
+ $("loadStatus").textContent="Loading fixtures from Goalzone247 backend…";
+ $("refreshButton").disabled=true;
+ try{
+  const response=await fetch("/api/daily"+(force?"?refresh=1":""),{cache:"no-store"});
+  const data=await response.json();
+  if(!response.ok&&!data.fixtures)throw new Error(data.error||"Backend request failed");
+  state.fixtures=Array.isArray(data.fixtures)?data.fixtures:[];
+  state.accumulators=data.accumulators||{};
+  updateLeagueOptions();
+  renderAccumulators(state.accumulators);
+  renderFixtures();
+  $("lastUpdated").textContent="Updated "+new Date().toLocaleTimeString();
+  $("loadStatus").textContent=(data.warning||data.error||"Backend connected")+" · "+state.fixtures.length+" fixtures";
+ }catch(err){
+  $("loadStatus").textContent="Backend connection error: "+err.message;
+  $("matches").innerHTML='<div class="empty">Could not load fixtures. Check the Goalzone247 backend and API key.</div>';
+ }finally{$("refreshButton").disabled=false;}
+}
+$("dateTabs").addEventListener("click",e=>{
+ const b=e.target.closest("button[data-date]");
+ if(!b)return;
+ state.date=b.dataset.date;
+ document.querySelectorAll("#dateTabs button").forEach(x=>x.classList.toggle("active",x===b));
+ renderFixtures();
+});
+$("searchBox").addEventListener("input",renderFixtures);
+$("leagueFilter").addEventListener("change",renderFixtures);
+$("marketFilter").addEventListener("change",renderFixtures);
+$("refreshButton").addEventListener("click",()=>loadData(true));
+
+loadData(false);
+setInterval(()=>loadData(false),5*60*1000);
+</script>
 </body>
 </html>
